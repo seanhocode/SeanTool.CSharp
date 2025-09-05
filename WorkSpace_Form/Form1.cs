@@ -1,5 +1,4 @@
-using System.ComponentModel;
-using Tool.FormControl;
+using WorkSpace_Form.Model;
 
 namespace WorkSpace_Form
 {
@@ -9,21 +8,24 @@ namespace WorkSpace_Form
         {
             InitializeComponent();
         }
-        public class Person
-        {
-            [DisplayName("©m¦W")]
-            public string Name { get; set; } = "Sean";
 
-            [DisplayName("¦~ÄÖ")]
-            public string Age { get; set; } = "30";
-        }
+        public ModelEditorTest modelEditorTest = new ModelEditorTest("Alias");
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            Person test = new Person();
-            TabControl tabControl = new TabControl() { Dock = DockStyle.Fill };
-            tabControl.TabPages.Add(FormControlTool.GetEditTabPage(test));
-            this.Controls.Add(tabControl);
+            
+            //TabControl tabControl = new TabControl() { Dock = DockStyle.Fill };
+            //tabControl.TabPages.Add();
+            this.Controls.Add(modelEditorTest.GetEditorGroupBox());
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+
+            //MessageBox.Show($"{modelEditorTest.Name},{modelEditorTest.Age}\r\n{modelEditorTest.PhotoImagePath}\r\n{modelEditorTest.PhotoImageFolderPath}");
+            modelEditorTest.SetEditControlWedgt(250);
+            //this.Controls.Remove(person.GetEditorGroupBox());
+            //this.Controls.Add(person.GetEditorGroupBox());
         }
     }
 }

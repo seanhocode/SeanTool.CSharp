@@ -1,0 +1,62 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Read version from tag
+        id: version
+        shell: bash
+        run: |
+          ref="${GITHUB_REF#refs/tags/}"
+          ver="${ref#v}"
+          echo "version=$ver" >> $GITHUB_OUTPUT
+          echo "ref_name=$ref" >> $GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore
+
+      # 輸出到 Release 資料夾（和 sln 同層）
+      - name: Publish (single file, self-contained, win-x64)
+        run: >
+          # 專案設定檔路徑
+          dotnet publish ./ErrorHelper/ErrorHelper.csproj
+          -c Release
+          -r win-x64
+          -p:Version=${{ steps.version.outputs.version }}
+          # 程式輸出路徑
+          -o Release/build
+
+      - name: Zip artifacts
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          # -Path:從哪裡打包
+          # -DestinationPath打包至哪裡(含檔名)
+          Compress-Archive -Path Release/build/* -DestinationPath artifacts/ErrorHelper.${{ steps.version.outputs.version }}.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: artifacts/*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

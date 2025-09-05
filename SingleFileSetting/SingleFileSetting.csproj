@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <!--指定輸出為 GUI 應用程式，不會彈出控制台視窗-->
+        <OutputType>WinExe</OutputType>
+        <!--目標 .NET 框架版本-->
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <!--開啟 nullable reference types，增加程式碼安全性-->
+        <Nullable>enable</Nullable>
+        <!--使用 Windows Forms UI 框架-->
+        <UseWindowsForms>true</UseWindowsForms>
+        <!--自動引入常用命名空間，減少 using 宣告-->
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!--指定編譯後檔案的版本號，可在檔案屬性中查看-->
+        <FileVersion>1.0</FileVersion>
+        <!-- 將專案所有檔案打包成單一 EXE -->
+        <PublishSingleFile>true</PublishSingleFile>
+        <!-- 自包含發佈，內含 .NET Runtime，不依賴目標電腦是否安裝 .NET -->
+        <SelfContained>true</SelfContained>
+
+        <!-- 將所有必要內容合併到 EXE，運行時自動解壓縮 -->
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+        <!--是否修剪未使用的程式碼，設定 false 保留完整功能，避免出現 MissingMethod 或相依性問題-->
+        <PublishTrimmed>false</PublishTrimmed>
+        <!--將內容壓縮，減少 EXE 檔案大小-->
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <!--將原生庫 (.dll) 包含在 EXE 中，確保完整運行-->
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    </PropertyGroup>
+    <ItemGroup>
+      <None Update="Data\csprojExample.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Data\PublishSetting.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Data\release.yml">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+</Project>

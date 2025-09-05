@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36401.2 d17.14
+VisualStudioVersion = 17.14.36401.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tool.CSharp.Net8", "Tool.CSharp.Net8\Tool.CSharp.Net8.csproj", "{AF9C1161-CC07-4DE2-90C7-7C2CAD5A5876}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormControlTool", "FormControlTool\FormControlTool.csproj", "{75072138-8BB7-4829-B341-B5CA52516E33}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkSpace_Form", "WorkSpace_Form\WorkSpace_Form.csproj", "{1BDE2D08-95A1-491A-93CB-44966148D215}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SingleFileSetting", "SingleFileSetting\SingleFileSetting.csproj", "{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{1BDE2D08-95A1-491A-93CB-44966148D215}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1BDE2D08-95A1-491A-93CB-44966148D215}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1BDE2D08-95A1-491A-93CB-44966148D215}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

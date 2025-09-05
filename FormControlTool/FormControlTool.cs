@@ -1,87 +1,47 @@
-﻿using System.Collections.Generic;
-using System.Reflection;
-using Tool.FormControl.Model;
-
+﻿
 namespace Tool.FormControl
 {
     public class FormControlTool
     {
-        public static TabPage GetEditTabPage<T>(T model)
+        /// <summary>
+        /// 打開SelectFolder視窗
+        /// </summary>
+        /// <param name="defaultPath">預設資料夾</param>
+        /// <returns>選擇資料夾的路徑</returns>
+        public static string GetSelectFolderPath(string defaultPath = "")
         {
-            if (model == null) return new TabPage();
-            
-            TabPage editTabPage =new TabPage(){
-                Name = $"Edit{model.GetType().Name}TabPage"
-                , Text = $"Edit{model.GetType().Name}"
-                , Dock = DockStyle.Fill
-                , AutoScroll = true
-            };
-
-            editTabPage.Controls.Add(GetEditGroupBox<T>(model));
-
-            return editTabPage;
-        }
-
-        public static GroupBox GetEditGroupBox<T>(T model)
-        {
-            if (model == null) return new GroupBox();
-
-            GroupBox editGroupBox = new GroupBox()
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
             {
-                Name = $"Edit{model.GetType().Name}GroupBox"
-                , Text = $"Edit{model.GetType().Name}"
-                , AutoSize = true
-                , Dock = DockStyle.Fill
-            };
+                fbd.Description = "請選擇一個資料夾";
+                fbd.SelectedPath = defaultPath;     // 預設開啟的資料夾
 
-            IList<PropertyEditor> editorList = GetPropertyEditorList<T>(model);
+                if (fbd.ShowDialog() == DialogResult.OK)
+                    return fbd.SelectedPath;
 
-            foreach (PropertyEditor editor in editorList)
-            {
-                editGroupBox.Controls.Add(editor.ShowNameLabel);
-                editGroupBox.Controls.Add(editor.EditControl);
-            }
-
-            return editGroupBox;
-        }
-
-        public static IList<PropertyEditor> GetPropertyEditorList<T>(T model)
-        {
-            if(model == null) return new List<PropertyEditor>();
-
-            IList<PropertyEditor> propertyEditorList = new List<PropertyEditor>();
-            PropertyInfo[] properties = model.GetType().GetProperties();
-
-            foreach (PropertyInfo prop in properties)
-            {
-                propertyEditorList.Add(new PropertyEditor(prop, prop.GetValue(model)));
-            }
-
-            SetPropertyEditorLocation(propertyEditorList);
-
-            return propertyEditorList;
-        }
-
-        public static void SetPropertyEditorLocation(IList<PropertyEditor> propertyEditorList)
-        {
-            int maxLabelWidth = propertyEditorList.Max(editor => editor.ShowNameLabel.Width)
-                , maxControlWidth = propertyEditorList.Max(editor => editor.EditControl.Width)
-                , positionY = 30
-                , initialX = 10;
-
-            foreach (PropertyEditor editor in propertyEditorList)
-            {
-                editor.ShowNameLabel.Width = maxLabelWidth;
-                editor.ShowNameLabel.Left = initialX;
-                editor.ShowNameLabel.Top = positionY;
-                editor.EditControl.Width = maxControlWidth;
-                editor.EditControl.Left = initialX + 10 + maxLabelWidth;
-                editor.EditControl.Top = positionY;
-
-                positionY += 30;
+                return string.Empty;
             }
         }
 
+        /// <summary>
+        /// 打開SelectFile視窗
+        /// </summary>
+        /// <param name="defaultPath"></param>
+        /// <returns></returns>
+        public static string GetSelectFilePath(string defaultPath = "")
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Title = "請選擇一個檔案";
+                ofd.Filter = "所有檔案 (*.*)|*.*";   // 或指定檔案類型
+                ofd.InitialDirectory = Path.GetDirectoryName(defaultPath); // 預設開啟的資料夾
+                ofd.FileName = Path.GetFileName(defaultPath);
+
+                if (ofd.ShowDialog() == DialogResult.OK)
+                    return ofd.FileName;
+
+                return string.Empty;
+            }
+        }
         /* DockStyle
             None       // 不停靠，使用 Location + Size
             Top        // 停靠到父容器上方
