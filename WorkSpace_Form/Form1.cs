@@ -13,19 +13,26 @@ namespace WorkSpace_Form
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
-            //TabControl tabControl = new TabControl() { Dock = DockStyle.Fill };
-            //tabControl.TabPages.Add();
+            modelEditorTest.SetEditControlWedgt(200);
             this.Controls.Add(modelEditorTest.GetEditorGroupBox());
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
+            if (modelEditorTest.OpenEditWindow())
+                MessageBox.Show("OK");
+            else
+                MessageBox.Show("Cancel");
+        }
 
-            //MessageBox.Show($"{modelEditorTest.Name},{modelEditorTest.Age}\r\n{modelEditorTest.PhotoImagePath}\r\n{modelEditorTest.PhotoImageFolderPath}");
-            modelEditorTest.SetEditControlWedgt(250);
-            //this.Controls.Remove(person.GetEditorGroupBox());
-            //this.Controls.Add(person.GetEditorGroupBox());
+        private void button2_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show($"{modelEditorTest.Str}\r\n{modelEditorTest.Int}\r\n{modelEditorTest.PhotoImageFolderPath}\r\n{modelEditorTest.PhotoImagePath}\r\n{modelEditorTest.NoNameTest}");
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            
         }
     }
 }

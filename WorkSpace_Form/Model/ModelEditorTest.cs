@@ -7,10 +7,10 @@ namespace WorkSpace_Form.Model
     public class ModelEditorTest : ModelEditor
     {
         [DisplayName("字串測試")]
-        public string Name { get; set; }
+        public string Str { get; set; }
 
         [DisplayName("整數測試")]
-        public int Age { get; set; }
+        public int Int { get; set; }
 
         [DisplayName("檔案路徑測試")]
         public string PhotoImagePath { get; set; }
@@ -22,8 +22,8 @@ namespace WorkSpace_Form.Model
 
         public ModelEditorTest(string modelAlias = "") : base(modelAlias)
         {
-            Name = "Sean";
-            Age = 24;
+            Str = "Sean";
+            Int = 24;
             PhotoImagePath = @"C:\GSS\Radar\Project\GSS\GSS_RADAR-MODELS\GSS.Radar.Domain.Models";
             PhotoImageFolderPath = @"C:\GSS\Radar\Project\GSS\GSS_RADAR-MODELS\GSS.Radar.Domain.Models";
             NoNameTest = @"C:\GSS\";
