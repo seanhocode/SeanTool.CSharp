@@ -1,9 +1,10 @@
 name: NuGet Publish
 
 on:
+  # 當有 Tag 推送到主分支時觸發 (例如: git tag v1.0.0; git push --tags)
   push:
-    branches:
-      - main 
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 env:
   # 要發布到 NuGet 的專案名稱（不要附 .csproj）
