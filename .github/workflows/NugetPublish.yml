@@ -1,13 +1,10 @@
 name: Publish NuGet Package to GitHub Packages
 
 on:
-  # === 修改此處，設定 push 觸發條件 ===
+  # 當推送到 main 分支時觸發
   push:
     branches:
-      # 當推送到 main 分支時觸發
       - main 
-      # 您可以根據需要加入其他分支，例如: - dev
-  # ==================================
 
 jobs:
   publish:
@@ -15,34 +12,70 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
       
-    - name: Setup .NET
+    - name: Setup .NET 8.0 SDK
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x' 
         
     # 1. 建置核心專案
-    # 使用 --filter 篩選出所有不包含 'Test' 的專案進行建置
-    # /p:EnableWindowsTargeting=true 解決 NETSDK1100 錯誤
-    - name: Build core projects
+    # 此步驟負責建置所有 DLLs，同時使用 /p:EnableWindowsTargeting=true 解決跨平台錯誤。
+    - name: Build Core Projects (Excluding Tests)
       run: |
-        dotnet build Tool.CSharp.Net8.sln --filter ":!*Test*" --configuration Release /p:EnableWindowsTargeting=true
-          
-    # 2. 生成 .nupkg 檔案
-    # 再次使用 --filter，只打包需要發布的核心專案 (使用 --no-build 因為上一步已建置)
-    - name: Pack NuGet package
-      run: |
-        dotnet pack Tool.CSharp.Net8.sln \
+        dotnet build Tool.CSharp.Net8.sln \
+          --filter ":!*Test*" \
           --configuration Release \
-          --output nuget_packages \
-          --no-build \
-          --filter ":!*Test*"
+          /p:EnableWindowsTargeting=true
           
-    # 3. 發布套件到 GitHub Packages
-    - name: Push package to GitHub Packages
+    # 2. 生成並發布 .nupkg 檔案
+    # 使用 Bash 迴圈來遍歷所有非 Test 的 .csproj 檔案，並對其執行 pack 和 push。
+    - name: Pack and Push Individual Packages
+      env:
+        # 將方案名稱設定為環境變數，方便在 find 中排除方案根目錄下的檔案
+        SOLUTION_NAME: Tool.CSharp.Net8
       run: |
-        dotnet nuget push nuget_packages/*.nupkg \
-          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-          --api-key ${{ secrets.GITHUB_TOKEN }} \
-          --skip-duplicate
+        # 尋找所有非 Test 專案的 .csproj 檔案
+        find . -type f -name "*.csproj" -not -path "*Test*" -print0 | while IFS= read -r -d $'\0' csproj_path; do
+          
+          # 提取專案目錄名稱 (例如: FileTool)
+          PROJECT_NAME=$(basename $(dirname "$csproj_path"))
+          
+          # 排除方案根目錄下的 .csproj 檔案
+          if [[ "$PROJECT_NAME" == "$SOLUTION_NAME" ]]; then
+            continue
+          fi
+          
+          # 排除特殊的 'Test' 專案文件夾 (如果您方案中有名為 "Test" 的資料夾)
+          if [[ "$PROJECT_NAME" == "Test" ]]; then
+            continue
+          fi
+          
+          echo "Processing package for $PROJECT_NAME at path $csproj_path..."
+          
+          # 2.1 對單一專案執行 dotnet pack，將套件輸出到 nuget_packages 資料夾
+          # 使用 --no-build，因為 DLLs 已在上一步建置完成
+          dotnet pack "$csproj_path" \
+            --configuration Release \
+            --output nuget_packages \
+            --no-build
+            
+          # 2.2 尋找剛剛生成的 .nupkg 檔案
+          NUPKG_FILE=$(find nuget_packages -name "$PROJECT_NAME*.nupkg" -print -quit)
+          
+          # 2.3 發布該套件
+          if [ -f "$NUPKG_FILE" ]; then
+            echo "Pushing $NUPKG_FILE..."
+            dotnet nuget push "$NUPKG_FILE" \
+              --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+              --api-key ${{ secrets.GITHUB_TOKEN }} \
+              --skip-duplicate
+            
+            # 清理剛剛生成的 nupkg 檔案
+            rm "$NUPKG_FILE"
+          else
+            echo "Warning: Could not find packaged file for $PROJECT_NAME. Skipping push."
+          fi
+          
+        done
