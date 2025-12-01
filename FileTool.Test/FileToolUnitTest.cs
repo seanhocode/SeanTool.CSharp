@@ -110,5 +110,17 @@ namespace FileTool.Test
                 Assert.Contains(expectedFilePath, files);
             }
         }
+
+        [Fact]
+        public void DeleteFolderTest()
+        {
+            Assert.Equal(true, false);
+        }
+
+        [Fact]
+        public void DeleteFolderByCommandTest()
+        {
+            Assert.Equal(true, false);
+        }
     }
 }

@@ -1,0 +1,40 @@
+name: Publish NuGet Package to GitHub Packages
+
+on:
+  # === 修改此處，設定 push 觸發條件 ===
+  push:
+    branches:
+      # 當推送到 main 分支時觸發
+      - main 
+      # 您可以根據需要加入其他分支，例如: - dev
+  # ==================================
+
+jobs:
+  publish:
+    # 設置環境
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' 
+        
+    # 1. 還原並建置專案
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    # 2. 生成 .nupkg 檔案
+    # 警告：此處使用 --no-build，請確保在上一個 step 或之前已執行過 dotnet build
+    - name: Pack NuGet package
+      run: dotnet pack --configuration Release --output nuget_packages --no-build
+      
+    # 3. 發布套件到 GitHub Packages
+    - name: Push package to GitHub Packages
+      run: |
+        dotnet nuget push nuget_packages/*.nupkg \
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+          --api-key ${{ secrets.GITHUB_TOKEN }} \
+          --skip-duplicate
