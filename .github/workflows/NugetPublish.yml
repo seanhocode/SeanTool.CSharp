@@ -5,6 +5,11 @@ on:
     branches:
       - main 
 
+env:
+  # ❗ 需要發布 NuGet 套件的專案名稱（不用附路徑、不用附副檔名）
+  # 格式：以分號分隔
+  INCLUDE_PROJECTS: "FileTool;JsonTool;ProcessTool;XMLTool;ZipTool"
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -18,32 +23,46 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # 自動 Restore 所有非 Test 的 Tool 專案（含 Windows Targeting）
-      - name: Restore Tool Projects (Exclude Tests)
+      # Restore (only included projects)
+      - name: Restore Included Projects
         run: |
-          for proj in $(find . -name "*Tool.csproj" ! -name "*Test*"); do
-            echo "Restoring $proj"
-            dotnet restore "$proj" -p:EnableWindowsTargeting=true
+          IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+          for proj in "${PROJECTS[@]}"; do
+            FILE=$(find . -name "$proj.csproj")
+            if [ -f "$FILE" ]; then
+              echo "Restoring: $FILE"
+              dotnet restore "$FILE" -p:EnableWindowsTargeting=true
+            else
+              echo "Project not found: $proj"
+            fi
           done
 
-      # 自動 Build 所有非 Test 的 Tool 專案
-      - name: Build Tool Projects
+      # Build (only included projects)
+      - name: Build Included Projects
         run: |
-          for proj in $(find . -name "*Tool.csproj" ! -name "*Test*"); do
-            echo "Building $proj"
-            dotnet build "$proj" -c Release --no-restore -p:EnableWindowsTargeting=true
+          IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+          for proj in "${PROJECTS[@]}"; do
+            FILE=$(find . -name "$proj.csproj")
+            if [ -f "$FILE" ]; then
+              echo "Building: $FILE"
+              dotnet build "$FILE" -c Release --no-restore -p:EnableWindowsTargeting=true
+            fi
           done
 
-      # 自動 Pack
-      - name: Pack Tool Projects
+      # Pack (only included projects)
+      - name: Pack Included Projects
         run: |
           mkdir -p ./nupkg
-          for proj in $(find . -name "*Tool.csproj" ! -name "*Test*"); do
-            echo "Packing $proj"
-            dotnet pack "$proj" -c Release -o ./nupkg --no-build -p:EnableWindowsTargeting=true
+          IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+          for proj in "${PROJECTS[@]}"; do
+            FILE=$(find . -name "$proj.csproj")
+            if [ -f "$FILE" ]; then
+              echo "Packing: $FILE"
+              dotnet pack "$FILE" -c Release -o ./nupkg --no-build -p:EnableWindowsTargeting=true
+            fi
           done
 
-      # Publish 所有 nupkg
+      # Publish packages
       - name: Publish to NuGet
         run: |
           shopt -s nullglob
