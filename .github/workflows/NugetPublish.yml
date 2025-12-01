@@ -8,7 +8,7 @@ on:
 env:
   # 要發布到 NuGet 的專案名稱（不要附 .csproj）
   # 用分號區隔，可設定多個
-  INCLUDE_PROJECTS: "SingleFileSetting"
+  INCLUDE_PROJECTS: "FileTool;JsonTool;ProcessTool;XMLTool;ZipTool"
 
 jobs:
   publish:
