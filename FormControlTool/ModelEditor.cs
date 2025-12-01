@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace Tool.FormControl.Model
+namespace FormControlTool
 {
-    #region ModelEditor
+    # region ModelEditor
     /// <summary>
     /// 繼承此Editor後可取得編輯Model的GroupBox
     /// </summary>
@@ -64,6 +64,7 @@ namespace Tool.FormControl.Model
             {
                 PropertyEditorList = GenNewPropertyEditorList(PropertyInfoList);
                 LoadModelEditorValue(PropertyEditorList, PropertyInfoList);
+                SetPropertyEditorLocation(PropertyEditorList);
                 EditorGroupBox = GenNewEditorGroupBox(PropertyEditorList, PropertyInfoList);
             }
 
@@ -71,9 +72,34 @@ namespace Tool.FormControl.Model
         }
 
         /// <summary>
+        /// 編輯畫面增加自定義按鈕
+        /// </summary>
+        /// <param name="customizeBtn"></param>
+        public void AddCustomizeBtn(Button customizeBtn)
+        {
+            if (EditorGroupBox == null) EditorGroupBox = GetEditorGroupBox();
+
+            if (customizeBtn != null)
+            {
+                customizeBtn.Top = (PropertyEditorList ?? new List<PropertyEditor>()).DefaultIfEmpty().Max(editor => editor?.ShowNameLabel?.Top ?? 0) + DefaultY;
+                EditorGroupBox.Controls.Add(customizeBtn);
+            }
+        }
+
+        /// <summary>
         /// 將子Model上的值帶入EditControl
         /// </summary>
-        public void LoadModelEditorValue(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
+        public void LoadModelEditorValue()
+        {
+            LoadModelEditorValue(PropertyEditorList, PropertyInfoList);
+        }
+
+        /// <summary>
+        /// 將子Model上的值帶入EditControl
+        /// </summary>
+        /// <param name="propertyEditorList"></param>
+        /// <param name="propertyInfoList"></param>
+        private void LoadModelEditorValue(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
         {
             foreach (PropertyInfo propInfo in propertyInfoList)
             {
@@ -98,7 +124,17 @@ namespace Tool.FormControl.Model
         /// <summary>
         /// 將EditControl的值寫回子Model
         /// </summary>
-        public void SaveModelEditorValue(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
+        public void SaveModelEditorValue()
+        {
+            SaveModelEditorValue(PropertyEditorList, PropertyInfoList);
+        }
+
+        /// <summary>
+        /// 將EditControl的值寫回子Model
+        /// </summary>
+        /// <param name="propertyEditorList"></param>
+        /// <param name="propertyInfoList"></param>
+        private void SaveModelEditorValue(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
         {
             foreach (PropertyInfo propInfo in propertyInfoList)
             {
@@ -131,13 +167,29 @@ namespace Tool.FormControl.Model
         /// <summary>
         /// 直接開新視窗
         /// </summary>
+        /// <returns></returns>
         public bool OpenEditWindow()
         {
+            GetEditorGroupBox();
+            SwitchToEditorMode();
+
             DialogResult result = new ModelEditorForm(GetEditorGroupBox()).ShowDialog();
+
             if (result == DialogResult.OK)
             {
                 SaveModelEditorValue(PropertyEditorList, PropertyInfoList);
             }
+
+            return result == DialogResult.OK; // 點按鈕回傳 true，直接 X 回傳 false
+        }
+
+        public bool OpenViewWindow()
+        {
+            GetEditorGroupBox();
+            SwitchToViewerMode();
+
+            DialogResult result = new ModelEditorForm(GetEditorGroupBox()).ShowDialog();
+
             return result == DialogResult.OK; // 點按鈕回傳 true，直接 X 回傳 false
         }
 
@@ -165,7 +217,7 @@ namespace Tool.FormControl.Model
         private GroupBox GenNewEditorGroupBox(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
         {
 
-            Button saveButton = new Button() { Text = "Save" };
+            //Button saveButton = new Button() { Text = "Save" };
             string modelName = $"{GetType().Name}", groupBoxTitle = string.Empty;
             DisplayNameAttribute? displayAttr = GetType().GetCustomAttribute<DisplayNameAttribute>();
 
@@ -181,7 +233,7 @@ namespace Tool.FormControl.Model
             {
                 Name = $"Edit{modelName}GroupBox",
                 Text = groupBoxTitle,
-                //Dock = DockStyle.Fill,
+                Dock = DockStyle.Fill,
                 AutoSize = true
             };
 
@@ -196,16 +248,6 @@ namespace Tool.FormControl.Model
                         editorGroupBox.Controls.Add(editor.SelectButton);
                 }
             }
-
-            //Step.2 將saveButton放入GroupBox
-            saveButton.Top = (propertyEditorList ?? new List<PropertyEditor>()).Max(editor => editor.ShowNameLabel.Top) + DefaultY;
-            saveButton.Click += (sender, e) =>
-            {
-                SaveModelEditorValue(propertyEditorList, propertyInfoList);
-                MessageBox.Show("Saved");
-            };
-
-            editorGroupBox.Controls.Add(saveButton);
 
             return editorGroupBox;
         }
@@ -224,8 +266,6 @@ namespace Tool.FormControl.Model
 
             propertyEditorList.RemoveAll(PropertyEditor => PropertyEditor.EditControl == null);
 
-            SetPropertyEditorLocation(propertyEditorList);
-
             return propertyEditorList;
         }
 
@@ -233,9 +273,10 @@ namespace Tool.FormControl.Model
         /// 設定PropertyEditor的長寬、位置
         /// </summary>
         /// <remarks>將所有欄位名稱長度設為最長的欄位名稱長度</remarks>
-        private void SetPropertyEditorLocation(List<PropertyEditor> propertyEditorList)
+        private void SetPropertyEditorLocation(IList<PropertyEditor> propertyEditorList)
         {
             int maxLabelWidth = propertyEditorList.Max(editor => editor.ShowNameLabel.Width)
+                , maxControlWidth = (int)(propertyEditorList.Max(editor => TextRenderer.MeasureText(editor.EditControl.Text, SystemFonts.DefaultFont).Width) * 1.3)
                 , positionY = DefaultY
                 , initialX = DefaultX;
 
@@ -244,8 +285,10 @@ namespace Tool.FormControl.Model
                 editor.ShowNameLabel.Width = maxLabelWidth;
                 editor.ShowNameLabel.Left = initialX;
                 editor.ShowNameLabel.Top = positionY;
-                if (DefaultEditControlWidth != null && DefaultEditControlWidth > 0)
+                if (DefaultEditControlWidth != null && DefaultEditControlWidth > 0 && maxControlWidth < DefaultEditControlWidth)
                     editor.EditControl.Width = DefaultEditControlWidth.Value;
+                else
+                    editor.EditControl.Width = maxControlWidth;
                 editor.EditControl.Left = initialX + DefaultX + maxLabelWidth;
                 editor.EditControl.Top = positionY;
                 if (editor.SelectButton != null)
@@ -255,6 +298,28 @@ namespace Tool.FormControl.Model
                 }
 
                 positionY += DefaultY;
+            }
+        }
+
+        private void SwitchToViewerMode()
+        {
+            foreach (PropertyEditor editor in PropertyEditorList)
+            {
+                editor.EditControl.Enabled = false;
+                if (editor.SelectButton != null)
+                    editor.SelectButton.Visible = false;
+            }
+
+
+        }
+
+        private void SwitchToEditorMode()
+        {
+            foreach (PropertyEditor editor in PropertyEditorList)
+            {
+                editor.EditControl.Enabled = true;
+                if (editor.SelectButton != null)
+                    editor.SelectButton.Visible = true;
             }
         }
     }
@@ -422,8 +487,7 @@ namespace Tool.FormControl.Model
         public ModelEditorForm(GroupBox editorGroupBox)
         {
             Text = "ModelEditor";
-            Width = 800;
-            Height = 250;
+            AutoSize = true;
 
             Button confirmBtn = new Button
             {

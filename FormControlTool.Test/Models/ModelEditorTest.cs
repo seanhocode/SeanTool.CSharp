@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel;
-using Tool.FormControl.Model;
 
-namespace WorkSpace_Form.Model
+namespace FormControlTool.Test
 {
     [DisplayName("ModelEditor測試")]
     public class ModelEditorTest : ModelEditor
