@@ -6,69 +6,90 @@ on:
       - main 
 
 env:
-  # ❗ 需要發布 NuGet 套件的專案名稱（不用附路徑、不用附副檔名）
-  # 格式：以分號分隔
-  INCLUDE_PROJECTS: "FileTool;JsonTool;ProcessTool;XMLTool;ZipTool"
+  # 要發布到 NuGet 的專案名稱（不要附 .csproj）
+  # 用分號區隔，可設定多個
+  INCLUDE_PROJECTS: "SingleFileSetting"
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
-      # Restore (only included projects)
+      # ----------------------------------------------
+      # Restore
+      # ----------------------------------------------
       - name: Restore Included Projects
+        shell: bash
         run: |
           IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+
           for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj")
-            if [ -f "$FILE" ]; then
-              echo "Restoring: $FILE"
+            FILE=$(find . -name "$proj.csproj" | head -n 1)
+
+            if [[ -f "$FILE" ]]; then
+              echo "🔄 Restore: $FILE"
               dotnet restore "$FILE" -p:EnableWindowsTargeting=true
             else
-              echo "Project not found: $proj"
+              echo "⚠️ 找不到專案：$proj"
             fi
           done
 
-      # Build (only included projects)
+      # ----------------------------------------------
+      # Build
+      # ----------------------------------------------
       - name: Build Included Projects
+        shell: bash
         run: |
           IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+
           for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj")
-            if [ -f "$FILE" ]; then
-              echo "Building: $FILE"
+            FILE=$(find . -name "$proj.csproj" | head -n 1)
+
+            if [[ -f "$FILE" ]]; then
+              echo "🏗 Build: $FILE"
               dotnet build "$FILE" -c Release --no-restore -p:EnableWindowsTargeting=true
             fi
           done
 
-      # Pack (only included projects)
+      # ----------------------------------------------
+      # Pack
+      # ----------------------------------------------
       - name: Pack Included Projects
+        shell: bash
         run: |
           mkdir -p ./nupkg
           IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+
           for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj")
-            if [ -f "$FILE" ]; then
-              echo "Packing: $FILE"
+            FILE=$(find . -name "$proj.csproj" | head -n 1)
+
+            if [[ -f "$FILE" ]]; then
+              echo "📦 Pack: $FILE"
               dotnet pack "$FILE" -c Release -o ./nupkg --no-build -p:EnableWindowsTargeting=true
             fi
           done
 
-      # Publish packages
+      # ----------------------------------------------
+      # Publish to NuGet
+      # ----------------------------------------------
       - name: Publish to NuGet
+        shell: bash
         run: |
           shopt -s nullglob
+
           for pkg in ./nupkg/*.nupkg; do
-            echo "Publishing $pkg"
+            echo "🚀 Publishing: $pkg"
             dotnet nuget push "$pkg" \
               -k ${{ secrets.NUGET_API_KEY }} \
               -s https://api.nuget.org/v3/index.json
           done
+
+          echo "🎉 All packages published successfully!"
