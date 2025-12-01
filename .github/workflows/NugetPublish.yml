@@ -27,6 +27,13 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${VERSION#v}"   # 移除前面的 v
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       # ----------------------------------------------
       # Restore
       # ----------------------------------------------
@@ -77,7 +84,10 @@ jobs:
 
             if [[ -f "$FILE" ]]; then
               echo "📦 Pack: $FILE"
-              dotnet pack "$FILE" -c Release -o ./nupkg --no-build -p:EnableWindowsTargeting=true
+
+              dotnet pack "$FILE" -c Release -o ./nupkg \
+                --no-build \
+                /p:PackageVersion=${{ steps.get_version.outputs.version }}
             fi
           done
 

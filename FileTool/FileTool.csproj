@@ -7,14 +7,12 @@
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>SeanTool.CSharp.Net8.FileTool</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Sean Ho</Authors>
     <Description>FileTool</Description>
     <PackageTags>tool;file;net8</PackageTags>
     <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp.Net8</PackageProjectUrl>
     <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.Net8.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
 </Project>

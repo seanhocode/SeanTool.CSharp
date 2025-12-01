@@ -6,19 +6,17 @@
     - 測試專案命名XXXTool.Test
     - ![](./image/CreateNewTool/CreateNewTestProjectLocate.png)
     - ![](./image/CreateNewTool/CreateNewTestProjectSetting.png)
-3. 於該Tool專案的.csproj新增以下設定
+3. 於該Tool專案的.csproj新增以下metadata設定
     - 
     ```csproj=
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <PackageId>SeanTool.CSharp.Net8.XXXTool</PackageId>
-        <Version>1.0.0</Version>
+        <PackageId>SeanTool.CSharp.Net8.FileTool</PackageId>
         <Authors>Sean Ho</Authors>
-        <Description>XXXTool</Description>
-        <PackageTags>tool;XXX;net8</PackageTags>
+        <Description>FileTool</Description>
+        <PackageTags>tool;file;net8</PackageTags>
         <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp.Net8</PackageProjectUrl>
         <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.Net8.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <EnableWindowsTargeting>true</EnableWindowsTargeting>
     ```
     - ![](./image/CreateNewTool/csprojSetting.png)
 4. 設定自動部屬
