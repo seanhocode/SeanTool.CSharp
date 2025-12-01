@@ -81,7 +81,13 @@ jobs:
       # Publish to NuGet
       # ----------------------------------------------
       - name: Publish to NuGet
-        run: dotnet nuget push "./nupkg/*.nupkg" \
-          -k ${{ secrets.NUGET_API_KEY }} \
-          -s "https://api.nuget.org/v3/index.json" \
-          --skip-duplicate
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for pkg in ./nupkg/*.nupkg; do
+            echo "🚀 Publishing: $pkg"
+            dotnet nuget push "$pkg" \
+              -k "${{ secrets.NUGET_API_KEY }}" \
+              -s "https://api.nuget.org/v3/index.json" \
+              --skip-duplicate
+          done
