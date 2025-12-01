@@ -13,6 +13,7 @@
     <PackageTags>tool;process;net8</PackageTags>
     <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp.Net8</PackageProjectUrl>
     <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.Net8.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
