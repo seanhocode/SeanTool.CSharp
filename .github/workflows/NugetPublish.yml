@@ -46,6 +46,7 @@ jobs:
       # Publish 所有 nupkg
       - name: Publish to NuGet
         run: |
+          shopt -s nullglob
           for pkg in ./nupkg/*.nupkg; do
             echo "Publishing $pkg"
             dotnet nuget push "$pkg" \
