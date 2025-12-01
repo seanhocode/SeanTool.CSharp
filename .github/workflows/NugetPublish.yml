@@ -18,29 +18,32 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore Solution
-        run: dotnet restore Tool.CSharp.Net8.sln
-
-      # 自動尋找所有非 Test 的 *Tool.csproj 並建置
-      - name: Build All Tool Projects (Exclude Tests)
+      # 自動 Restore 所有非 Test 的 Tool 專案（含 Windows Targeting）
+      - name: Restore Tool Projects (Exclude Tests)
         run: |
-          echo "Building Tool projects..."
+          for proj in $(find . -name "*Tool.csproj" ! -name "*Test*"); do
+            echo "Restoring $proj"
+            dotnet restore "$proj" -p:EnableWindowsTargeting=true
+          done
+
+      # 自動 Build 所有非 Test 的 Tool 專案
+      - name: Build Tool Projects
+        run: |
           for proj in $(find . -name "*Tool.csproj" ! -name "*Test*"); do
             echo "Building $proj"
-            dotnet build "$proj" -c Release --no-restore
+            dotnet build "$proj" -c Release --no-restore -p:EnableWindowsTargeting=true
           done
 
       # 自動 Pack
-      - name: Pack All Tool Projects
+      - name: Pack Tool Projects
         run: |
           mkdir -p ./nupkg
-          echo "Packing Tool projects..."
           for proj in $(find . -name "*Tool.csproj" ! -name "*Test*"); do
             echo "Packing $proj"
-            dotnet pack "$proj" -c Release -o ./nupkg --no-build
+            dotnet pack "$proj" -c Release -o ./nupkg --no-build -p:EnableWindowsTargeting=true
           done
 
-      # Push 所有 .nupkg 到 NuGet
+      # Publish 所有 nupkg
       - name: Publish to NuGet
         run: |
           for pkg in ./nupkg/*.nupkg; do
