@@ -22,15 +22,26 @@ jobs:
       with:
         dotnet-version: '8.0.x' 
         
-    # 1. 還原並建置專案
-    - name: Restore dependencies
-      run: dotnet restore
-      
+    # 1. 建置核心專案
+    # 使用 --filter 篩選出所有不包含 'Test' 的專案進行建置
+    # /p:EnableWindowsTargeting=true 解決 NETSDK1100 錯誤
+    - name: Build core projects
+      run: |
+        dotnet build Tool.CSharp.Net8.sln \
+          --configuration Release \
+          --filter ":!*Test*" \
+          /p:EnableWindowsTargeting=true
+          
     # 2. 生成 .nupkg 檔案
-    # 警告：此處使用 --no-build，請確保在上一個 step 或之前已執行過 dotnet build
+    # 再次使用 --filter，只打包需要發布的核心專案 (使用 --no-build 因為上一步已建置)
     - name: Pack NuGet package
-      run: dotnet pack --configuration Release --output nuget_packages --no-build
-      
+      run: |
+        dotnet pack Tool.CSharp.Net8.sln \
+          --configuration Release \
+          --output nuget_packages \
+          --no-build \
+          --filter ":!*Test*"
+          
     # 3. 發布套件到 GitHub Packages
     - name: Push package to GitHub Packages
       run: |
