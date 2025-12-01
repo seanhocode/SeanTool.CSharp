@@ -11,7 +11,8 @@
     <Authors>Sean Ho</Authors>
     <Description>ZipTool</Description>
     <PackageTags>tool;zip;net8</PackageTags>
-    <RepositoryUrl>https://nuget.pkg.github.com/seanhocode/index.json</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp.Net8</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.Net8.git</RepositoryUrl>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 

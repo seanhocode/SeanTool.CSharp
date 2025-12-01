@@ -10,6 +10,9 @@ env:
   # 用分號區隔，可設定多個
   INCLUDE_PROJECTS: "FileTool;JsonTool;ProcessTool;XMLTool;ZipTool"
 
+  # GitHub Packages Feed URL
+  GITHUB_NUGET_SOURCE: "https://nuget.pkg.github.com/seanhocode/index.json"
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -77,17 +80,18 @@ jobs:
             fi
           done
 
-      # ----------------------------------------------
-      # Publish to NuGet
-      # ----------------------------------------------
-      - name: Publish to NuGet
+      # -------------------------------------------------
+      # Publish to GitHub Packages
+      # -------------------------------------------------
+      - name: Publish to GitHub Packages
         shell: bash
         run: |
           shopt -s nullglob
           for pkg in ./nupkg/*.nupkg; do
             echo "🚀 Publishing: $pkg"
+
             dotnet nuget push "$pkg" \
-              -k "${{ secrets.NUGET_API_KEY }}" \
-              -s "https://api.nuget.org/v3/index.json" \
+              --api-key "${{ secrets.GITHUB_TOKEN }}" \
+              --source "$GITHUB_NUGET_SOURCE" \
               --skip-duplicate
           done
