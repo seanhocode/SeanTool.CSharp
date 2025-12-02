@@ -1,4 +1,4 @@
-namespace JsonTool.Test
+namespace SeanTool.Tools.Test
 {
     public class JsonToolUnitTest
     {

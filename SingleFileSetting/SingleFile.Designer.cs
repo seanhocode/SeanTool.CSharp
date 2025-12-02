@@ -1,4 +1,4 @@
-﻿namespace SingleFileSetting
+﻿namespace SeanTool.Tools
 {
     partial class SingleFile
     {

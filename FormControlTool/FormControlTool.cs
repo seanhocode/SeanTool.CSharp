@@ -1,4 +1,4 @@
-﻿namespace FormControlTool
+﻿namespace SeanTool.Tools
 {
     /* DockStyle:
             None       // 不停靠，使用 Location + Size

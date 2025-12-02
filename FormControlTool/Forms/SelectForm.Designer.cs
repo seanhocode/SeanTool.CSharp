@@ -1,4 +1,4 @@
-﻿namespace FormControlTool.Forms
+﻿namespace SeanTool.Tools.Forms
 {
     partial class SelectForm
     {

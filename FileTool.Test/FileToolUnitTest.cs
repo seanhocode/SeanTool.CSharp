@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace FileTool.Test
+namespace SeanTool.Tools.Test
 {
     public class FileToolUnitTest
     {

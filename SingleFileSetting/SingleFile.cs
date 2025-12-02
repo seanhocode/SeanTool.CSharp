@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SingleFileSetting
+namespace SeanTool.Tools
 {
     public partial class SingleFile : Form
     {

@@ -1,7 +1,6 @@
-using FormControlTool.Forms;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
+using SeanTool.Tools.Forms;
 
-namespace FormControlTool.Test
+namespace SeanTool.Tools.Test
 {
     public partial class MainForm : Form
     {

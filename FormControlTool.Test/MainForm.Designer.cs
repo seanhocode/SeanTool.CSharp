@@ -1,4 +1,4 @@
-﻿namespace FormControlTool.Test
+﻿namespace SeanTool.Tools.Test
 {
     partial class MainForm
     {

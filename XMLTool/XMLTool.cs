@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace XMLTool
+namespace SeanTool.Tools
 {
     public static class XMLTool
     {

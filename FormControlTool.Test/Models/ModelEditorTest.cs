@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace FormControlTool.Test
+namespace SeanTool.Tools.Test
 {
     [DisplayName("ModelEditor測試")]
     public class ModelEditorTest : ModelEditor

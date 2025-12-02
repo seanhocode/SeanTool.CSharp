@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace FormControlTool
+namespace SeanTool.Tools
 {
     # region ModelEditor
     /// <summary>

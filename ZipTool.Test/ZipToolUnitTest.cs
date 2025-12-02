@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace ZipTool.Test
+namespace SeanTool.Tools.Test
 {
     public class ZipToolUnitTest
     {

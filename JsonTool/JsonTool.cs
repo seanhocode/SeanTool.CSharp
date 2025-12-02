@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace JsonTool
+namespace SeanTool.Tools
 {
     public static class JsonTool
     {

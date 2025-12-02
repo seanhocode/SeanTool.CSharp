@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace ZipTool
+namespace SeanTool.Tools
 {
     public static class ZipTool
     {
