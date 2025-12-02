@@ -22,3 +22,4 @@
 4. 設定自動部屬
     - 將新Tool名稱加入``.github\workflows\NugetPublish.yml``的``INCLUDE_PROJECTS``
     - ![](./image/CreateNewTool/ymlSetting.png)
+5. 命名空間設定為``SeanTool.Tools``
