@@ -10,7 +10,6 @@
     - ![](./image/UseNuget/CreateClassicTokenSetting.png)
 
 2. 於新增``nuget.config``
-    - 
     ```config=
     <?xml version="1.0" encoding="utf-8"?>
     <configuration>
@@ -27,7 +26,26 @@
     </configuration>
     ```
     - ![](./image/UseNuget/NugetConfigLocate.png)
+
 3. 於Nuget套件管理員安裝套件
     - ![](./image/UseNuget/NuGetSourceLocate.png)
     - 或手動設定(待確認)
     - ![](./image/UseNuget/NuGetSourceSetting.png)
+
+4. CI/CD的yml設定
+    1. 把``PAT``放到專案repo的``GitHub Secrets``
+        - ![](./image/UseNuget/AddRepositorySercets.png)
+    2. ``permissions``加入``packages: read``
+    3. checkout之後、restore之前加入
+        ```yml=
+            - name: Add GitHub NuGet source
+                run: |
+                    dotnet nuget remove source GitHub || true
+                    dotnet nuget add source "https://nuget.pkg.github.com/seanhocode/index.json" `
+                        --name GitHub `
+                        --username seanhocode `
+                        --password ${{ secrets.GH_PACKAGES_TOKEN }} `
+                        --store-password-in-clear-text
+                shell: pwsh
+        ```
+        - ![](./image/UseNuget/YMLAddNugetSetting.png)
