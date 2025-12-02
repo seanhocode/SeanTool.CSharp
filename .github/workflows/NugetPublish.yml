@@ -12,21 +12,29 @@ env:
   INCLUDE_PROJECTS: "FileTool;JsonTool;ProcessTool;XMLTool;ZipTool"
 
   # GitHub Packages Feed URL
+  # 固定格式：https://nuget.pkg.github.com/GitHub使用者名稱/index.json
   GITHUB_NUGET_SOURCE: "https://nuget.pkg.github.com/seanhocode/index.json"
 
 jobs:
   publish:
+    # ubuntu-latest 是 GitHub Actions 最輕量、啟動最快、執行速度也最快的 Runner
+    # .NET 在 Linux 上編譯、Restore、Pack 的效能都比 Windows 佳
+    # 並且所有 dotnet CLI 指令（restore/build/pack/push）在 Ubuntu 上完全可用
+    # 因此非常適合用來做 NuGet 套件的自動化編譯與發布
     runs-on: ubuntu-latest
 
     steps:
+      # 檢出原始碼
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 安裝 .NET SDK，用於 restore/build/publish
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
+      # 從Tag取得版本號 Tag格式：v[X].[X].[X]
       - name: Extract version from tag
         id: get_version
         run: |
@@ -102,6 +110,9 @@ jobs:
             echo "🚀 Publishing: $pkg"
 
             dotnet nuget push "$pkg" \
+              # secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權
+              # 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
+              # 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
               --api-key "${{ secrets.GITHUB_TOKEN }}" \
               --source "$GITHUB_NUGET_SOURCE" \
               --skip-duplicate
