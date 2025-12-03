@@ -7,7 +7,7 @@
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>SeanTool.CSharp.Net8.FileTool</PackageId>
-    <Version>0.0.0</Version>
+    <Version>0.0.2</Version>
     <Authors>Sean Ho</Authors>
     <Description>FileTool</Description>
     <PackageTags>tool;file;net8</PackageTags>
