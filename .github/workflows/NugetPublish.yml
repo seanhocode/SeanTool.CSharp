@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-
+  workflow_dispatch:
 env:
   # 要發布到 NuGet 的專案名稱（不要附 .csproj）
   # 用分號區隔，可設定多個
@@ -72,9 +72,9 @@ jobs:
           echo "🚫 No Tool project changed. Skip."
           exit 0
 
-      # ----------------------------------------------
+      # ---------------------------------------------------------
       # Step.3 Restore
-      # ----------------------------------------------
+      # ---------------------------------------------------------
       - name: Restore Changed Projects
         run: |
           IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
@@ -84,9 +84,9 @@ jobs:
             dotnet restore "$FILE"
           done
 
-      # ----------------------------------------------
+      # ---------------------------------------------------------
       # Step.4 Build
-      # ----------------------------------------------
+      # ---------------------------------------------------------
       - name: Build Changed Projects
         run: |
           IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
@@ -96,9 +96,9 @@ jobs:
             dotnet build "$FILE" -c Release --no-restore
           done
 
-      # ----------------------------------------------
+      # ---------------------------------------------------------
       # Step.5 Pack
-      # ----------------------------------------------
+      # ---------------------------------------------------------
       - name: Pack Changed Projects
         run: |
           mkdir -p ./nupkg
@@ -109,11 +109,18 @@ jobs:
             dotnet pack "$FILE" -c Release -o ./nupkg --no-build
           done
 
-      # -------------------------------------------------
+      # ---------------------------------------------------------
       # Step.6 Publish to GitHub Packages
-      # -------------------------------------------------
+      # ---------------------------------------------------------
+      - name: Add GitHub Packages source
+        run: |
+          dotnet nuget add source \
+            --name github \
+            --username $GITHUB_ACTOR \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
+            "$GITHUB_NUGET_SOURCE"
+
       - name: Publish to GitHub Packages
-        shell: bash
         run: |
           shopt -s nullglob
           for pkg in ./nupkg/*.nupkg; do
@@ -124,6 +131,6 @@ jobs:
               # 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
               # 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
               --api-key "${{ secrets.GITHUB_TOKEN }}" \
-              --source "$GITHUB_NUGET_SOURCE" \
+              --source github \
               --skip-duplicate
           done
