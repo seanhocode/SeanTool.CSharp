@@ -11,6 +11,7 @@
     ```csproj=
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>SeanTool.CSharp.Net8.FileTool</PackageId>
+        <Version>0.0.2</Version>
         <Authors>Sean Ho</Authors>
         <Description>FileTool</Description>
         <PackageTags>tool;file;net8</PackageTags>
@@ -22,4 +23,5 @@
 4. 設定自動部屬
     - 將新Tool名稱加入``.github\workflows\NugetPublish.yml``的``INCLUDE_PROJECTS``
     - ![](./image/CreateNewTool/ymlSetting.png)
-5. 命名空間設定為``SeanTool.Tools``
+5. 命名空間設定為``SeanTool.CSharp.Net8``
+    - ![](./image/CreateNewTool/NameSpaceSetting.png)
