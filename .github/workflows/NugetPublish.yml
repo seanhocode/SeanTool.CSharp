@@ -118,6 +118,7 @@ jobs:
             --name github \
             --username $GITHUB_ACTOR \
             --password "${{ secrets.GITHUB_TOKEN }}" \
+            --store-password-in-clear-text \
             "$GITHUB_NUGET_SOURCE"
 
       - name: Publish to GitHub Packages
