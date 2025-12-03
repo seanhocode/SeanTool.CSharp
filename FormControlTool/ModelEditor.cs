@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace SeanTool.Tools
+namespace SeanTool.CSharp.Net8
 {
     # region ModelEditor
     /// <summary>

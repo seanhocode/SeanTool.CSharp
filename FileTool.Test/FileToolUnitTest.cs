@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SeanTool.Tools.Test
+namespace SeanTool.CSharp.Net8.Test
 {
     public class FileToolUnitTest
     {
@@ -114,13 +114,60 @@ namespace SeanTool.Tools.Test
         [Fact]
         public void DeleteFolderTest()
         {
-            Assert.Equal(true, false);
+            string deleteFolderPath = Path.Combine(FileTool.ThisExeDir, "DeleteData");
+            Directory.CreateDirectory(deleteFolderPath);
+            for (int i = 0; i < 10; i++)
+                File.WriteAllText(Path.Combine(deleteFolderPath, $"{i.ToString()}.txt"), i.ToString());
+
+            FileTool.DeleteFolder(deleteFolderPath);
+
+            Assert.False(Directory.Exists(deleteFolderPath));
         }
 
         [Fact]
-        public void DeleteFolderByCommandTest()
+        public void ReadFileTest()
         {
-            Assert.Equal(true, false);
+            string filePath = Path.Combine(FileTool.ThisExeDir, "Data", "TestLog.log");
+
+            int dummy = 0, lineCount = 0;
+            Action<string> processorSync = line =>
+            {
+                dummy += line.Length;
+                lineCount++;
+            };
+
+            Stopwatch sw = Stopwatch.StartNew();
+            foreach (string line in FileTool.ReadFile(filePath, 80 * 1024))
+            {
+                processorSync(line);
+            }
+            sw.Stop();
+
+            Assert.Equal(10000004, lineCount);
+            Assert.True(sw.ElapsedMilliseconds < 2000);
+        }
+
+        [Fact]
+        public async Task ReadFileAsyncTest()
+        {
+            string filePath = Path.Combine(FileTool.ThisExeDir, "Data", "TestLog.log");
+
+            int dummy = 0, lineCount = 0;
+            Func<string, Task> processorASync = line =>
+            {
+                dummy += line.Length;
+                lineCount++;
+                return Task.CompletedTask;
+            };
+
+            Stopwatch sw = Stopwatch.StartNew();
+            await foreach(string line in FileTool.ReadFileAsync(filePath, 80 * 1024)){
+                await processorASync(line);
+            }
+            sw.Stop();
+
+            Assert.Equal(10000004, lineCount);
+            Assert.True(sw.ElapsedMilliseconds < 10000);
         }
     }
 }

@@ -1,10 +1,9 @@
 name: NuGet Publish
 
 on:
-  # 當有 Tag 推送到主分支時觸發 (例如: git tag v1.0.0; git push --tags)
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - main
 
 env:
   # 要發布到 NuGet 的專案名稱（不要附 .csproj）
@@ -27,6 +26,8 @@ jobs:
       # 檢出原始碼
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 要完整 diff
 
       # 安裝 .NET SDK，用於 restore/build/publish
       - name: Setup .NET SDK
@@ -34,73 +35,82 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      # 從Tag取得版本號 Tag格式：v[X].[X].[X]
-      - name: Extract version from tag
-        id: get_version
+      # ---------------------------------------------------------
+      # Step.1 取得本次 commit 的變動檔案
+      # ---------------------------------------------------------
+      - name: Get changed files
+        id: diff
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
-          VERSION="${VERSION#v}"   # 移除前面的 v
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          git fetch origin main --depth=2
+          git diff --name-only HEAD~1 HEAD > diff.txt
 
-      # ----------------------------------------------
-      # Restore
-      # ----------------------------------------------
-      - name: Restore Included Projects
-        shell: bash
+          echo "Changed files:"
+          cat diff.txt
+
+      # ---------------------------------------------------------
+      # Step.2 找出哪些 Tool 有變動（csproj / cs / 其他檔都算）
+      # ---------------------------------------------------------
+      - name: Detect Changed Projects
+        id: detect
         run: |
           IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
-
+          CHANGED=""
+          
           for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj" | head -n 1)
-
-            if [[ -f "$FILE" ]]; then
-              echo "🔄 Restore: $FILE"
-              dotnet restore "$FILE" -p:EnableWindowsTargeting=true
-            else
-              echo "⚠️ 找不到專案：$proj"
+            if grep -q "$proj" diff.txt; then
+              echo "Detected project change: $proj"
+              CHANGED="$CHANGED;$proj"
             fi
           done
 
-      # ----------------------------------------------
-      # Build
-      # ----------------------------------------------
-      - name: Build Included Projects
-        shell: bash
-        run: |
-          IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
+          CHANGED=${CHANGED#;}
+          echo "changed_projects=$CHANGED" >> $GITHUB_OUTPUT
 
+      - name: Skip if no tool changed
+        if: ${{ steps.detect.outputs.changed_projects == '' }}
+        run: |
+          echo "🚫 No Tool project changed. Skip."
+          exit 0
+
+      # ----------------------------------------------
+      # Step.3 Restore
+      # ----------------------------------------------
+      - name: Restore Changed Projects
+        run: |
+          IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
           for proj in "${PROJECTS[@]}"; do
             FILE=$(find . -name "$proj.csproj" | head -n 1)
-
-            if [[ -f "$FILE" ]]; then
-              echo "🏗 Build: $FILE"
-              dotnet build "$FILE" -c Release --no-restore -p:EnableWindowsTargeting=true
-            fi
+            echo "🔄 Restore: $FILE"
+            dotnet restore "$FILE"
           done
 
       # ----------------------------------------------
-      # Pack
+      # Step.4 Build
       # ----------------------------------------------
-      - name: Pack Included Projects
-        shell: bash
+      - name: Build Changed Projects
+        run: |
+          IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
+          for proj in "${PROJECTS[@]}"; do
+            FILE=$(find . -name "$proj.csproj" | head -n 1)
+            echo "🏗 Build: $FILE"
+            dotnet build "$FILE" -c Release --no-restore
+          done
+
+      # ----------------------------------------------
+      # Step.5 Pack
+      # ----------------------------------------------
+      - name: Pack Changed Projects
         run: |
           mkdir -p ./nupkg
-          IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
-
+          IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
           for proj in "${PROJECTS[@]}"; do
             FILE=$(find . -name "$proj.csproj" | head -n 1)
-
-            if [[ -f "$FILE" ]]; then
-              echo "📦 Pack: $FILE"
-
-              dotnet pack "$FILE" -c Release -o ./nupkg \
-                --no-build \
-                /p:PackageVersion=${{ steps.get_version.outputs.version }}
-            fi
+            echo "📦 Pack: $FILE"
+            dotnet pack "$FILE" -c Release -o ./nupkg --no-build
           done
 
       # -------------------------------------------------
-      # Publish to GitHub Packages
+      # Step.6 Publish to GitHub Packages
       # -------------------------------------------------
       - name: Publish to GitHub Packages
         shell: bash

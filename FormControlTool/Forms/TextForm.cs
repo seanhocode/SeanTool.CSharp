@@ -1,4 +1,4 @@
-﻿namespace SeanTool.Tools.Forms
+﻿namespace SeanTool.CSharp.Net8.Forms
 {
     public partial class TextForm : Form
     {
@@ -10,8 +10,11 @@
         public TextForm(string formTitle = "Select", string info = "PleaseEnter")
         {
             InitializeComponent();
-            Text = formTitle;
-            TextFormMsgLabel.Text = info;
+
+            this.Text = formTitle;
+            this.TextFormMsgLabel.Text = info;
+            // 設定視窗在父視窗/擁有者視窗的中央開啟
+            this.StartPosition = FormStartPosition.CenterParent;
         }
 
         private void TextFormSubmitBtn_Click(object sender, EventArgs e)

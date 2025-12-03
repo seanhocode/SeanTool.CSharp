@@ -1,4 +1,4 @@
-﻿namespace SeanTool.Tools.Forms
+﻿namespace SeanTool.CSharp.Net8.Forms
 {
     partial class SelectForm
     {

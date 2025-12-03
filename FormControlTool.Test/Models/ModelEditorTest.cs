@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace SeanTool.Tools.Test
+namespace SeanTool.CSharp.Net8.Test
 {
     [DisplayName("ModelEditor測試")]
     public class ModelEditorTest : ModelEditor

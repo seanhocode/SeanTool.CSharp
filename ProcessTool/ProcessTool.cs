@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 
-namespace SeanTool.Tools
+namespace SeanTool.CSharp.Net8
 {
     public static class ProcessTool
     {

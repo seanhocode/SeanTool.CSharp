@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Threading.Channels;
 
-namespace SeanTool.Tools
+namespace SeanTool.CSharp.Net8
 {
     public class FileTool
     {
@@ -83,6 +84,10 @@ namespace SeanTool.Tools
             return filePathList;
         }
 
+        /// <summary>
+        /// 刪除資料夾及其所有內容
+        /// </summary>
+        /// <param name="targetFolder"></param>
         public static void DeleteFolder(string targetFolder)
         {
             string[] files = Directory.GetFiles(targetFolder, "*", SearchOption.AllDirectories);
@@ -95,65 +100,343 @@ namespace SeanTool.Tools
             Directory.Delete(targetFolder, false);
         }
 
-        public static string DeleteFolderByCommand(string targetFolder)
+        /// <summary>
+        /// 讀取檔案內容
+        /// </summary>
+        /// <param name="filePath">檔案路徑</param>
+        /// <param name="bufferSize">Buffer 大小，預設 80KB</param>
+        /// <returns>一個可逐行列舉的字串序列</returns>
+        public static IEnumerable<string> ReadFile(
+            string filePath,
+            int bufferSize = 80 * 1024
+        )
         {
-            string cmdCommand = @$"cmd /c rd /s /q ""{targetFolder}""";
-            string output = string.Empty;
-            Process process = _NewProcess("cmd.exe", @"C:\", cmdCommand, true);
-
-            process.OutputDataReceived += (sender, args) => { output += $"[Msg]{args.Data ?? string.Empty}"; };
-            process.ErrorDataReceived += (sender, args) => { output += $"[Err]{args.Data ?? string.Empty}"; };
-
-            process.Exited += (s, e) =>
+            FileStreamOptions fileOptions = new FileStreamOptions
             {
-                process.Dispose();
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.ReadWrite,
+                Options = FileOptions.SequentialScan,
+                BufferSize = bufferSize
             };
+
+            using StreamReader reader = new StreamReader(filePath, fileOptions);
+
+            string? line;
+            while ((line = reader.ReadLine()) != null){
+                yield return line;
+            }
+        }
+
+        // IEnumerable 是一個可逐項走訪的序列的抽象協定
+        // yield return 讓方法變成可逐項產生資料的迭代器（iterator）的語法糖
+        /// <summary>
+        /// 非同步讀取檔案內容
+        /// </summary>
+        /// <param name="filePath">檔案路徑</param>
+        /// <param name="bufferSize">Buffer 大小，預設 80KB</param>
+        /// <returns>一個可逐行列舉的字串序列</returns>
+        public static async IAsyncEnumerable<string> ReadFileAsync(
+            string filePath,
+            int bufferSize = 80 * 1024
+        )
+        {
+
+            string? line;
+            FileStreamOptions fileOptions = new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.ReadWrite,
+                Options = FileOptions.SequentialScan | FileOptions.Asynchronous,
+                BufferSize = bufferSize
+            };
+            using StreamReader reader = new StreamReader(filePath, fileOptions);
+
+            while ((line = await reader.ReadLineAsync()) != null)
+                yield return line;
+        }
+
+        # region 測試後效能較差
+        /// <summary>
+        /// 讀取文字檔
+        /// </summary>
+        /// <param name="filePath">檔案路徑</param>
+        /// <param name="lineProcessor"></param>
+        /// <param name="bufferSize">初始 Buffer 大小 (預設 80KB)</param>
+        /// <param name="encoding">文字編碼 (預設 UTF-8)</param>
+        /// <param name="cancellationToken">取消權杖</param>
+        private static async Task ReadFileAsyncByBuffer(
+            string filePath,
+            Func<string, Task> lineProcessor,
+            int bufferSize = 80 * 1024,
+            Encoding? encoding = null,
+            CancellationToken cancellationToken = default
+        ){
+            
+            if (!CheckFileExist(filePath)) throw new FileNotFoundException("File not found", filePath);
+
+            encoding ??= Encoding.UTF8; // 預設 UTF-8
+            byte[] buffer = new byte[bufferSize];
+            int activeBytes = 0;
+
+            // Step.1 設定 FileStream
+            FileStreamOptions fileOptions = new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.  ReadWrite,
+                Options = FileOptions.SequentialScan | FileOptions.Asynchronous,
+                BufferSize = bufferSize
+            };
+
+            using FileStream fileStream = new FileStream(filePath, fileOptions);
 
             try
             {
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                while (true)
+                {
+                    // Step.2 從檔案讀取資料，填入 Buffer
+                    // offset : 接在目前殘留資料(activeBytes)的後面
+                    // count  : 填滿 Buffer(Buffer空間 - 殘留資料 = 剩餘空間)
+                    // 支援 CancellationToken (如果外部取消，這裡會拋出 OperationCanceledException)
+                    int bytesRead = await fileStream.ReadAsync(buffer, activeBytes, buffer.Length - activeBytes, cancellationToken);
+                    // 目前 Buffer 內的總有效位元組數(殘留 +新讀入)
+                    int totalBytes = activeBytes + bytesRead;
+                    // 已處理完的游標位置(每行開始位置，是最後一個 \n 的下一個位置)
+                    int currentLineStart = 0;
+
+                    // 讀不到資料且無殘留 -> 結束
+                    if (totalBytes == 0) break;
+
+                    // Step.3 解析換行
+                    for (int i = 0; i < totalBytes; i++)
+                    {
+                        // UTF-8，byte 10 => '\n'
+                        // UTF-8，byte 10 => '\n'
+                        if (buffer[i] == 10) 
+                        {
+                            int lineLength = i - currentLineStart;
+                            // 去除 '\r'
+                            if (lineLength > 0 && buffer[i - 1] == 13) lineLength--; 
+
+                            await lineProcessor(encoding.GetString(buffer, currentLineStart, lineLength));
+
+                            currentLineStart = i + 1;
+                        }
+                    }
+
+                    // Step.4 剩下沒處理到的資料長度 = 資料總長 - 目前行開始位置
+                    int leftBytes = totalBytes - currentLineStart;
+
+                    if (leftBytes > 0)
+                    {
+                        if (bytesRead == 0) // EOF
+                        {
+                            await lineProcessor(encoding.GetString(buffer, currentLineStart, leftBytes));
+
+                            break;
+                        }
+                        else
+                        {
+                            // 如果殘留資料塞滿了整個 Buffer，代表單行超過 Buffer 上限
+                            if (leftBytes == buffer.Length)
+                            {
+                                int newSize = buffer.Length * 2;
+                                // 設定上限防止記憶體耗盡 (例如限制單行最大 100MB)
+                                if (newSize > 100 * 1024 * 1024)
+                                    throw new InvalidOperationException($"Line too long (exceeded 100MB limit).");
+
+                                byte[] newBuffer = new byte[newSize];
+                                // 將舊資料搬到新 Buffer
+                                Array.Copy(buffer, currentLineStart, newBuffer, 0, leftBytes);
+                                // 替換參考
+                                buffer = newBuffer;
+                            }
+                            else
+                            {
+                                Array.Copy(buffer, currentLineStart, buffer, 0, leftBytes);
+                            }
+
+                            activeBytes = leftBytes;
+                        }
+                    }
+                    else
+                    {
+                        activeBytes = 0;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                output = ex.ToString();
+                throw;
             }
-
-            return output;
         }
 
         /// <summary>
-        /// 建立啟動外部應用程式的Process
+        /// 讀取每一行並執行傳入的處理邏輯
         /// </summary>
-        /// <param name="fileName">外部應用程式檔名</param>
-        /// <param name="fileFolderPath">外部應用程式檔案所在資料夾</param>
-        /// <param name="arguments">傳給執行程式的命令列參數(Command Line Arguments)</param>
-        /// <param name="isFullPath">fileName是否為絕對路徑，不是的話會組合fileName、fileFolderPath(預設:否)</param>
-        /// <remarks>不會檢查檔案是否存在，呼叫端需自行確認</remarks>
-        /// <returns>Process物件(尚未啟動)</returns>
-        private static Process _NewProcess(string fileName, string fileFolderPath, string arguments, bool isFullPath = false)
+        /// <param name="filePath">檔案路徑</param>
+        /// <param name="lineProcessor">自訂處理邏輯 (輸入字串，回傳 Task)</param>
+        /// <param name="cancellationToken">取消權杖</param>
+        private static async Task ProcessLinesAsync(
+          string filePath,
+          Func<string, Task> lineProcessor,
+          CancellationToken cancellationToken = default)
         {
-            fileName = isFullPath ? fileName : Path.Combine(fileFolderPath, fileName);
-            arguments = arguments == null ? string.Empty : arguments;
+            var channel = Channel.CreateBounded<string>(new BoundedChannelOptions(1000)
+            { SingleWriter = true, SingleReader = true });
 
-            ProcessStartInfo psi = new ProcessStartInfo
+            Task readTask = ReadFileToChannelAsync(
+              filePath,
+              channel.Writer,
+              bufferSize: 1024 * 80,
+              encoding: Encoding.UTF8,
+              cancellationToken: cancellationToken
+            );
+
+            try
             {
-                FileName = fileName,                    // 指定執行檔案檔名(完整路徑)
-                WorkingDirectory = fileFolderPath,      // 設定執行命令時的工作目錄，如果fileName是相對路徑，系統會在這個目錄下找
-                UseShellExecute = false,                // 決定是否使用作業系統的Shell來啟動程序，false才可以進一步設定RedirectStandardOutput和RedirectStandardError
-                RedirectStandardOutput = true,          // 將標準輸出(Standard Output)重定向，允許你從程式中取得批次檔的輸出內容
-                RedirectStandardError = true,           // 同上，標準錯誤(Standard Error)，如果批次檔執行中有錯誤訊息，你可以從程式中讀取
-                CreateNoWindow = true,                  // 表示不要顯示任何命令視窗，執行時會完全在背景中運作
-                WindowStyle = ProcessWindowStyle.Hidden,// 適用於GUI應用程式，可隱藏或控制視窗顯示樣式(不適用Console程式)
-                StandardOutputEncoding = Encoding.UTF8, //
-                StandardErrorEncoding = Encoding.UTF8,  //
+                await foreach (string line in channel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    //呼叫傳入的 function
+                    await lineProcessor(line);
+                }
+
+                await readTask; // 確保讀取正常結束
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 讀取文字檔並寫入 Channel
+        /// </summary>
+        /// <param name="filePath">檔案路徑</param>
+        /// <param name="writer">Channel.Writer</param>
+        /// <param name="bufferSize">初始 Buffer 大小 (預設 80KB)</param>
+        /// <param name="encoding">文字編碼 (預設 UTF-8)</param>
+        /// <param name="cancellationToken">取消權杖</param>
+        private static async Task ReadFileToChannelAsync(
+          string filePath,
+          ChannelWriter<string> writer,
+          int bufferSize = 80 * 1024,
+          Encoding? encoding = null,
+          CancellationToken cancellationToken = default
+        )
+        {
+
+            if (!CheckFileExist(filePath)) throw new FileNotFoundException("File not found", filePath);
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+
+            encoding ??= Encoding.UTF8; // 預設 UTF-8
+            byte[] buffer = new byte[bufferSize];
+            int activeBytes = 0;
+
+            // Step.1 設定 FileStream
+            FileStreamOptions fileOptions = new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.ReadWrite,
+                Options = FileOptions.SequentialScan | FileOptions.Asynchronous,
+                BufferSize = bufferSize
             };
 
-            if (!string.IsNullOrWhiteSpace(arguments)) psi.Arguments = arguments;
+            using FileStream fileStream = new FileStream(filePath, fileOptions);
 
-            //這個屬性若設為 true，表示當這個 Process 結束執行時，會觸發 Exited 事件
-            return new Process { StartInfo = psi, EnableRaisingEvents = true };
+            try
+            {
+                while (true)
+                {
+                    // Step.2 從檔案讀取資料，填入 Buffer
+                    // offset : 接在目前殘留資料(activeBytes)的後面
+                    // count  : 填滿 Buffer(Buffer空間 - 殘留資料 = 剩餘空間)
+                    // 支援 CancellationToken (如果外部取消，這裡會拋出 OperationCanceledException)
+                    int bytesRead = await fileStream.ReadAsync(buffer, activeBytes, buffer.Length - activeBytes, cancellationToken);
+                    // 目前 Buffer 內的總有效位元組數(殘留 +新讀入)
+                    int totalBytes = activeBytes + bytesRead;
+                    // 已處理完的游標位置(每行開始位置，是最後一個 \n 的下一個位置)
+                    int currentLineStart = 0;
+
+                    // 讀不到資料且無殘留 -> 結束
+                    if (totalBytes == 0) break;
+
+                    // Step.3 解析換行
+                    for (int i = 0; i < totalBytes; i++)
+                    {
+                        // UTF-8，byte 10 => '\n'
+                        // UTF-8，byte 10 => '\n'
+                        if (buffer[i] == 10)
+                        {
+                            int lineLength = i - currentLineStart;
+                            // 去除 '\r'
+                            if (lineLength > 0 && buffer[i - 1] == 13) lineLength--;
+
+                            string line = encoding.GetString(buffer, currentLineStart, lineLength);
+
+                            // 寫入 Channel (也要支援取消)
+                            await writer.WriteAsync(line, cancellationToken);
+
+                            currentLineStart = i + 1;
+                        }
+                    }
+
+                    // Step.4 剩下沒處理到的資料長度 = 資料總長 - 目前行開始位置
+                    int leftBytes = totalBytes - currentLineStart;
+
+                    if (leftBytes > 0)
+                    {
+                        if (bytesRead == 0) // EOF
+                        {
+                            string lastLine = encoding.GetString(buffer, currentLineStart, leftBytes);
+                            await writer.WriteAsync(lastLine, cancellationToken);
+                            activeBytes = 0;
+                        }
+                        else
+                        {
+                            // 如果殘留資料塞滿了整個 Buffer，代表單行超過 Buffer 上限
+                            if (leftBytes == buffer.Length)
+                            {
+                                int newSize = buffer.Length * 2;
+                                // 設定上限防止記憶體耗盡 (例如限制單行最大 100MB)
+                                if (newSize > 100 * 1024 * 1024)
+                                    throw new InvalidOperationException($"Line too long (exceeded 100MB limit).");
+
+                                byte[] newBuffer = new byte[newSize];
+                                // 將舊資料搬到新 Buffer
+                                Array.Copy(buffer, currentLineStart, newBuffer, 0, leftBytes);
+                                // 替換參考
+                                buffer = newBuffer;
+                                activeBytes = leftBytes;
+                            }
+                            else
+                            {
+                                Array.Copy(buffer, currentLineStart, buffer, 0, leftBytes);
+                                activeBytes = leftBytes;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        activeBytes = 0;
+                    }
+                }
+
+                writer.Complete();
+            }
+            catch (Exception ex)
+            {
+                // 發生錯誤 (包含被取消) 時，將例外傳給 Consumer
+                writer.Complete(ex);
+            }
         }
+        # endregion
     }
 }

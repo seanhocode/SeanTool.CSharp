@@ -1,4 +1,4 @@
-namespace SeanTool.Tools.Test
+namespace SeanTool.CSharp.Net8.Test
 {
     internal static class Program
     {
