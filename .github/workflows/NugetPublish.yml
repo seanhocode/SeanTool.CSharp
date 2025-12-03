@@ -127,10 +127,10 @@ jobs:
           for pkg in ./nupkg/*.nupkg; do
             echo "🚀 Publishing: $pkg"
 
+            # secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權
+            # 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
+            # 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
             dotnet nuget push "$pkg" \
-              # secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權
-              # 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
-              # 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
               --api-key "${{ secrets.GITHUB_TOKEN }}" \
               --source github \
               --skip-duplicate
