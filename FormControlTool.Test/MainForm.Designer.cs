@@ -1,4 +1,4 @@
-﻿namespace SeanTool.CSharp.Net8.Test
+﻿namespace SeanTool.CSharp.Net8.Forms.Test
 {
     partial class MainForm
     {

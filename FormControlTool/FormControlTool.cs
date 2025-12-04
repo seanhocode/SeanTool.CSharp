@@ -1,4 +1,4 @@
-﻿namespace SeanTool.CSharp.Net8
+﻿namespace SeanTool.CSharp.Net8.Forms
 {
     /* DockStyle:
             None       // 不停靠，使用 Location + Size

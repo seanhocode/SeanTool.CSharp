@@ -1,6 +1,6 @@
 using SeanTool.CSharp.Net8.Forms;
 
-namespace SeanTool.CSharp.Net8.Test
+namespace SeanTool.CSharp.Net8.Forms.Test
 {
     public partial class MainForm : Form
     {
