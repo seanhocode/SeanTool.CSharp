@@ -6,6 +6,16 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>SeanTool.CSharp.Net8.FormControlTool</PackageId>
+    <Version>0.0.0</Version>
+    <Authors>Sean Ho</Authors>
+    <Description>FormControlTool</Description>
+    <PackageTags>tool;form;control;net8</PackageTags>
+    <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp.Net8</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.Net8.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
 </Project>

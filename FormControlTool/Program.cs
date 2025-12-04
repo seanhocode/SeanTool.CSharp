@@ -1,4 +1,4 @@
-namespace FormControlTool
+namespace SeanTool.CSharp.Net8
 {
     internal static class Program
     {
