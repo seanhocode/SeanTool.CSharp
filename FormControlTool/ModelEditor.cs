@@ -3,507 +3,286 @@ using System.Reflection;
 
 namespace SeanTool.CSharp.Net8.Forms
 {
-    # region ModelEditor
-    /// <summary>
-    /// 繼承此Editor後可取得編輯Model的GroupBox
-    /// </summary>
-    /// <remarks></remarks>
-    public abstract class ModelEditor
+    // 用來標記字串屬性是「檔案選取」還是「資料夾選取」
+    [AttributeUsage(AttributeTargets.Property)]
+    public class EditorPathAttribute : Attribute
     {
-        /// <summary>
-        /// 子Model的PropertyInfo
-        /// </summary>
-        private PropertyInfo[] PropertyInfoList { get; set; }
+        public PathType Type { get; }
+        public string Filter { get; } // 給 OpenFileDialog 用
 
-        /// <summary>
-        /// 預設間隔X
-        /// </summary>
-        private readonly int DefaultX = 10;
-
-        /// <summary>
-        /// 預設間隔Y
-        /// </summary>
-        private readonly int DefaultY = 25;
-
-        private int? DefaultEditControlWidth { get; set; }
-
-        /// <summary>
-        /// 子Model辨識別名
-        /// </summary>
-        private string ModelAlias { get; set; }
-
-        /// <summary>
-        /// 編輯畫面GroupBox
-        /// </summary>
-        private GroupBox EditorGroupBox { get; set; }
-
-        /// <summary>
-        /// 屬性控制項清單
-        /// </summary>
-        private IList<PropertyEditor> PropertyEditorList { get; set; }
-
-        /// <summary>
-        /// 初始化ModelEditor
-        /// </summary>
-        /// <param name="modelAlias">子Model辨識別名</param>
-        public ModelEditor(string modelAlias = "")
+        public EditorPathAttribute(PathType type, string filter = "All files (*.*)|*.*")
         {
-            //GetProperties只會抓public屬性
-            PropertyInfoList = GetType().GetProperties();
-            ModelAlias = modelAlias;
+            Type = type;
+            Filter = filter;
+        }
+    }
+
+    public enum PathType
+    {
+        File,
+        Folder
+    }
+
+    public class ModelEditor<T> where T : class
+    {
+        private readonly T _Model;
+        private readonly Dictionary<PropertyInfo, Control> _ControlMap = new Dictionary<PropertyInfo, Control>();
+
+        public ModelEditor(T model)
+        {
+            _Model = model ?? throw new ArgumentNullException(nameof(model));
         }
 
         /// <summary>
-        /// 取得GroupBox
+        /// 產生編輯介面的主控制項 (使用 TableLayoutPanel 自動排版)
         /// </summary>
-        /// <remarks>回傳前先重新Load Editor的值</remarks>
-        /// <returns>編輯Model畫面的GroupBox</returns>
-        public GroupBox GetEditorGroupBox()
+        public Control GenerateUI(bool isViewer = false)
         {
-            if (EditorGroupBox == null)
+            PropertyInfo[] modelProperties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            // 使用 TableLayoutPanel 取代絕對座標，適應性更好
+            TableLayoutPanel layout = new TableLayoutPanel
             {
-                PropertyEditorList = GenNewPropertyEditorList(PropertyInfoList);
-                LoadModelEditorValue(PropertyEditorList, PropertyInfoList);
-                SetPropertyEditorLocation(PropertyEditorList);
-                EditorGroupBox = GenNewEditorGroupBox(PropertyEditorList, PropertyInfoList);
-            }
-
-            return EditorGroupBox;
-        }
-
-        /// <summary>
-        /// 編輯畫面增加自定義按鈕
-        /// </summary>
-        /// <param name="customizeBtn"></param>
-        public void AddCustomizeBtn(Button customizeBtn)
-        {
-            if (EditorGroupBox == null) EditorGroupBox = GetEditorGroupBox();
-
-            if (customizeBtn != null)
-            {
-                customizeBtn.Top = (PropertyEditorList ?? new List<PropertyEditor>()).DefaultIfEmpty().Max(editor => editor?.ShowNameLabel?.Top ?? 0) + DefaultY;
-                EditorGroupBox.Controls.Add(customizeBtn);
-            }
-        }
-
-        /// <summary>
-        /// 將子Model上的值帶入EditControl
-        /// </summary>
-        public void LoadModelEditorValue()
-        {
-            LoadModelEditorValue(PropertyEditorList, PropertyInfoList);
-        }
-
-        /// <summary>
-        /// 將子Model上的值帶入EditControl
-        /// </summary>
-        /// <param name="propertyEditorList"></param>
-        /// <param name="propertyInfoList"></param>
-        private void LoadModelEditorValue(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
-        {
-            foreach (PropertyInfo propInfo in propertyInfoList)
-            {
-                System.Windows.Forms.Control? propEditor = GetEditControl(propertyEditorList, propInfo.Name);
-                object? value = propInfo.GetValue(this);
-
-                if (value != null && propEditor != null)
-                {
-                    switch (propInfo.PropertyType)
-                    {
-                        case Type type when type == typeof(int):
-                            ((NumericUpDown)propEditor).Value = int.Parse(value?.ToString() ?? "0");
-                            break;
-                        case Type type when type == typeof(string):
-                            propEditor.Text = value?.ToString() ?? string.Empty;
-                            break;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 將EditControl的值寫回子Model
-        /// </summary>
-        public void SaveModelEditorValue()
-        {
-            SaveModelEditorValue(PropertyEditorList, PropertyInfoList);
-        }
-
-        /// <summary>
-        /// 將EditControl的值寫回子Model
-        /// </summary>
-        /// <param name="propertyEditorList"></param>
-        /// <param name="propertyInfoList"></param>
-        private void SaveModelEditorValue(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
-        {
-            foreach (PropertyInfo propInfo in propertyInfoList)
-            {
-                System.Windows.Forms.Control? propEditor = GetEditControl(propertyEditorList, propInfo.Name);
-
-                if (propEditor != null)
-                {
-                    switch (propInfo.PropertyType)
-                    {
-                        case Type type when type == typeof(int):
-                            propInfo.SetValue(this, Convert.ToInt32(((NumericUpDown)propEditor).Value));
-                            break;
-                        case Type type when type == typeof(string):
-                            propInfo.SetValue(this, propEditor.Text);
-                            break;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 設定EditControl的長度
-        /// </summary>
-        /// <param name="Width">EditControl的長度</param>
-        public void SetEditControlWedgt(int Width)
-        {
-            DefaultEditControlWidth = Width;
-        }
-
-        /// <summary>
-        /// 直接開新視窗
-        /// </summary>
-        /// <returns></returns>
-        public bool OpenEditWindow()
-        {
-            GetEditorGroupBox();
-            SwitchToEditorMode();
-
-            DialogResult result = new ModelEditorForm(GetEditorGroupBox()).ShowDialog();
-
-            if (result == DialogResult.OK)
-            {
-                SaveModelEditorValue(PropertyEditorList, PropertyInfoList);
-            }
-
-            return result == DialogResult.OK; // 點按鈕回傳 true，直接 X 回傳 false
-        }
-
-        public bool OpenViewWindow()
-        {
-            GetEditorGroupBox();
-            SwitchToViewerMode();
-
-            DialogResult result = new ModelEditorForm(GetEditorGroupBox()).ShowDialog();
-
-            return result == DialogResult.OK; // 點按鈕回傳 true，直接 X 回傳 false
-        }
-
-        /// <summary>
-        /// 根據PropertyName取得EditControl
-        /// </summary>
-        /// <param name="propName">PropertyName</param>
-        /// <returns>EditControl</returns>
-        private System.Windows.Forms.Control? GetEditControl(IList<PropertyEditor> propertyEditorList, string propName)
-        {
-            return propertyEditorList
-                    .Where(editor => editor.PropertyName == propName)
-                    .Select(editor => editor.EditControl)
-                    .FirstOrDefault();
-        }
-
-        /// <summary>
-        /// 產生編輯Model畫面的GroupBox
-        /// </summary>
-        /// <remarks>
-        /// Text預設為GetType().Name，子Model有設定屬性[DisplayName]則會顯示DisplayName，
-        /// 且如果有傳入子Model辨識別名則在後面加上.[子Model辨識別名]。
-        /// Name預設為Edit[GetType().Name](.[子Model辨識別名])GroupBox
-        /// </remarks>
-        private GroupBox GenNewEditorGroupBox(IList<PropertyEditor> propertyEditorList, PropertyInfo[] propertyInfoList)
-        {
-
-            //Button saveButton = new Button() { Text = "Save" };
-            string modelName = $"{GetType().Name}", groupBoxTitle = string.Empty;
-            DisplayNameAttribute? displayAttr = GetType().GetCustomAttribute<DisplayNameAttribute>();
-
-            groupBoxTitle = string.IsNullOrEmpty(displayAttr?.DisplayName) ? modelName : displayAttr.DisplayName;
-
-            if (!string.IsNullOrEmpty(ModelAlias))
-            {
-                modelName += $".{ModelAlias}";
-                groupBoxTitle += $".{ModelAlias}";
-            }
-
-            GroupBox editorGroupBox = new GroupBox()
-            {
-                Name = $"Edit{modelName}GroupBox",
-                Text = groupBoxTitle,
                 Dock = DockStyle.Fill,
-                AutoSize = true
+                ColumnCount = 2,
+                RowCount = modelProperties.Length + 1, // +1 預留彈性
+                AutoSize = true,
+                Padding = new Padding(10)
             };
 
-            //Step.1 將PropertyEditor放入GroupBox
-            if (propertyEditorList != null)
+            // 設定欄位比例：標籤欄 Auto，輸入欄 100%
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+
+            foreach (PropertyInfo prop in modelProperties)
             {
-                foreach (PropertyEditor editor in propertyEditorList)
+                if (!prop.CanRead || !prop.CanWrite) continue; // 跳過唯讀屬性
+
+                // 1. 建立 Label (嘗試讀取 DisplayName)
+                string labelText = prop.Name;
+                DisplayNameAttribute? displayNameAttr = prop.GetCustomAttribute<DisplayNameAttribute>();
+                if (displayNameAttr != null) labelText = displayNameAttr.DisplayName;
+
+                Label titleLabel = new Label
                 {
-                    editorGroupBox.Controls.Add(editor.ShowNameLabel);
-                    editorGroupBox.Controls.Add(editor.EditControl);
-                    if (editor.SelectButton != null)
-                        editorGroupBox.Controls.Add(editor.SelectButton);
+                    Text = $"{labelText}:",
+                    Anchor = AnchorStyles.Left | AnchorStyles.Top, // 對齊左上
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    AutoSize = true,
+                    Margin = new Padding(0, 6, 10, 0) // 微調垂直位置
+                };
+
+                // 2. 建立 Input Control
+                Control editorControl = CreateEditorControl(prop);
+                editorControl.Dock = DockStyle.Fill; // 填滿格子
+                editorControl.Enabled = !isViewer; // Viewer 模式下禁用控制項
+
+                // 3. 加入 Map 與 Layout
+                _ControlMap[prop] = editorControl;
+                layout.Controls.Add(titleLabel);
+                layout.Controls.Add(editorControl);
+            }
+
+            return layout;
+        }
+
+        /// <summary>
+        /// 將 UI 的值寫回 Model
+        /// </summary>
+        public void SaveValues()
+        {
+            foreach (KeyValuePair<PropertyInfo, Control> controlItem in _ControlMap)
+            {
+                PropertyInfo modelProp = controlItem.Key;
+                Control control = controlItem.Value;
+                object valueToSet = null;
+
+                try
+                {
+                    // 取得 Nullable 的底層型別，若非 Nullable 則為原刑別
+                    Type propType = Nullable.GetUnderlyingType(modelProp.PropertyType) ?? modelProp.PropertyType;
+
+                    if (control is CheckBox checkBox) { valueToSet = checkBox.Checked; }
+                    // NumericUpDown.Value 是 decimal，需轉型
+                    else if (control is NumericUpDown num) { valueToSet = Convert.ChangeType(num.Value, propType); }
+                    else if (control is DateTimePicker dateTimePicker) { valueToSet = dateTimePicker.Value; }
+                    else if (control is ComboBox comboBox) { valueToSet = comboBox.SelectedItem; }
+                    else if (control is TextBox textBox) { valueToSet = textBox.Text; }
+                    // 處理複合控制項 (Path Selector)
+                    else if (control is Panel panel)
+                    {
+                        TextBox? pathTextBox = panel.Controls[0] as TextBox;
+                        valueToSet = pathTextBox?.Text ?? string.Empty;
+                    }
+
+                    // 寫入屬性
+                    modelProp.SetValue(_Model, valueToSet);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"寫入屬性 {modelProp.Name} 失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-
-            return editorGroupBox;
         }
 
-        /// <summary>
-        /// 產生PropertyEditorList
-        /// </summary>
-        private List<PropertyEditor> GenNewPropertyEditorList(PropertyInfo[] propertyInfoList)
+        private Control CreateEditorControl(PropertyInfo prop)
         {
-            List<PropertyEditor> propertyEditorList = new List<PropertyEditor>();
+            if(prop == null) throw new ArgumentNullException(nameof(prop));
+            object? propValue = prop.GetValue(_Model);
+            Type propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
-            foreach (PropertyInfo prop in propertyInfoList)
+            // Boolean : CheckBox
+            if (propType == typeof(bool))
+                return new CheckBox { Checked = (propValue as bool?) ?? false, Text = "啟用" };
+
+            // Enum : ComboBox
+            if (propType.IsEnum)
             {
-                propertyEditorList.Add(new PropertyEditor(prop));
+                ComboBox comboBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+                comboBox.DataSource = Enum.GetValues(propType);
+                comboBox.SelectedItem = propValue ?? Enum.GetValues(propType).GetValue(0); // 預設選第一個
+                return comboBox;
             }
 
-            propertyEditorList.RemoveAll(PropertyEditor => PropertyEditor.EditControl == null);
-
-            return propertyEditorList;
-        }
-
-        /// <summary>
-        /// 設定PropertyEditor的長寬、位置
-        /// </summary>
-        /// <remarks>將所有欄位名稱長度設為最長的欄位名稱長度</remarks>
-        private void SetPropertyEditorLocation(IList<PropertyEditor> propertyEditorList)
-        {
-            int maxLabelWidth = propertyEditorList.Max(editor => editor.ShowNameLabel.Width)
-                , maxControlWidth = (int)(propertyEditorList.Max(editor => TextRenderer.MeasureText(editor.EditControl.Text, SystemFonts.DefaultFont).Width) * 1.3)
-                , positionY = DefaultY
-                , initialX = DefaultX;
-
-            foreach (PropertyEditor editor in propertyEditorList)
+            // Numeric : NumericUpDown
+            if (propType == typeof(int) || propType == typeof(long) || propType == typeof(decimal) || propType == typeof(double) || propType == typeof(float))
             {
-                editor.ShowNameLabel.Width = maxLabelWidth;
-                editor.ShowNameLabel.Left = initialX;
-                editor.ShowNameLabel.Top = positionY;
-                if (DefaultEditControlWidth != null && DefaultEditControlWidth > 0 && maxControlWidth < DefaultEditControlWidth)
-                    editor.EditControl.Width = DefaultEditControlWidth.Value;
+                NumericUpDown numericUpDown = new NumericUpDown { Minimum = decimal.MinValue, Maximum = decimal.MaxValue };
+
+                // 處理小數位數
+                if (propType == typeof(decimal))
+                    numericUpDown.DecimalPlaces = 24;
+                else if (propType == typeof(double))
+                    numericUpDown.DecimalPlaces = 12;
+                else if (propType == typeof(float))
+                    numericUpDown.DecimalPlaces = 4;
                 else
-                    editor.EditControl.Width = maxControlWidth;
-                editor.EditControl.Left = initialX + DefaultX + maxLabelWidth;
-                editor.EditControl.Top = positionY;
-                if (editor.SelectButton != null)
+                    numericUpDown.DecimalPlaces = 0;
+
+                if (propValue != null) numericUpDown.Value = Convert.ToDecimal(propValue);
+                return numericUpDown;
+            }
+
+            // DateTime : DateTimePicker
+            if (propType == typeof(DateTime))
+            {
+                DateTimePicker dataTimePicker = new DateTimePicker()
                 {
-                    editor.SelectButton.Left = editor.EditControl.Left + editor.EditControl.Width + DefaultX;
-                    editor.SelectButton.Top = positionY;
+                    Format = DateTimePickerFormat.Custom,
+                    CustomFormat = "yyyy/MM/dd HH:mm:ss"
+                }; ;
+                DateTime valueDT = (propValue as DateTime?) ?? DateTime.Now;
+                if (valueDT < dataTimePicker.MinDate) valueDT = dataTimePicker.MinDate;
+                if (valueDT > dataTimePicker.MaxDate) valueDT = dataTimePicker.MaxDate;
+                dataTimePicker.Value = valueDT;
+                return dataTimePicker;
+            }
+
+            // File/Folder Path
+            EditorPathAttribute? pathAttr = prop.GetCustomAttribute<EditorPathAttribute>();
+            if (pathAttr != null)
+                return CreatePathSelector(propValue?.ToString() ?? string.Empty, pathAttr);
+
+            // Default : TextBox
+            return new TextBox { Text = propValue?.ToString() };
+        }
+
+        // 建立 "TextBox + Button" 的複合控制項
+        private Control CreatePathSelector(string initValue, EditorPathAttribute attr)
+        {
+            Panel panel = new Panel { Height = 30, Margin = new Padding(0) }; // 容器
+
+            TextBox textBox = new TextBox { Text = initValue, Dock = DockStyle.Fill };
+            Button selectButton = new Button { Text = "...", Width = 30, Dock = DockStyle.Right };
+
+            selectButton.Click += (s, e) =>
+            {
+                if (attr.Type == PathType.Folder)
+                {
+                    using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+                    {
+                        if (fbd.ShowDialog() == DialogResult.OK) textBox.Text = fbd.SelectedPath;
+                    }
                 }
-
-                positionY += DefaultY;
-            }
-        }
-
-        private void SwitchToViewerMode()
-        {
-            foreach (PropertyEditor editor in PropertyEditorList)
-            {
-                editor.EditControl.Enabled = false;
-                if (editor.SelectButton != null)
-                    editor.SelectButton.Visible = false;
-            }
-
-
-        }
-
-        private void SwitchToEditorMode()
-        {
-            foreach (PropertyEditor editor in PropertyEditorList)
-            {
-                editor.EditControl.Enabled = true;
-                if (editor.SelectButton != null)
-                    editor.SelectButton.Visible = true;
-            }
-        }
-    }
-    #endregion
-
-    #region PropertyEditor
-    /// <summary>
-    /// Property編輯控制項
-    /// </summary>
-    public class PropertyEditor
-    {
-        /// <summary>
-        /// 欄位名稱
-        /// </summary>
-        /// <remarks>預設PropertyInfo.Name，Property有設定屬性[DisplayName]則會顯示DisplayName</remarks>
-        public Label ShowNameLabel { get; set; }
-
-        /// <summary>
-        /// 編輯Property的Control
-        /// </summary>
-        public System.Windows.Forms.Control EditControl { get; set; }
-
-        /// <summary>
-        /// Property名稱
-        /// </summary>
-        /// <remarks>存PropertyInfo.Name</remarks>
-        public string PropertyName { get; set; }
-
-        /// <summary>
-        /// 選擇按鈕
-        /// </summary>
-        /// <remarks>PropertyInfo.Name結尾為Path:檔案、FolderPath:資料夾</remarks>
-        public Button? SelectButton { get; set; }
-
-        /// <summary>
-        /// 選擇按鈕預設長度
-        /// </summary>
-        private int SelectButtonDefaultWidth = 90;
-
-        /// <summary>
-        /// Label長度修正
-        /// </summary>
-        private double OffsetLabelWidth = 1.2f;
-
-        /// <summary>
-        /// 預設EditControl長度
-        /// </summary>
-        private int DefaultControlWidth = 90;
-
-        /// <summary>
-        /// 根據PropertyInfo初始化PropertyEditor
-        /// </summary>
-        /// <param name="prop">PropertyInfo</param>
-        public PropertyEditor(PropertyInfo prop)
-        {
-            PropertyName = prop.Name;
-            DisplayNameAttribute? displayAttr = prop.GetCustomAttribute<DisplayNameAttribute>();
-            string labelText = $"{displayAttr?.DisplayName ?? prop.Name}:";
-            double labelWidth = TextRenderer.MeasureText(labelText, SystemFonts.DefaultFont).Width;
-
-            labelWidth *= OffsetLabelWidth;
-
-            //Step.1 設定ShowNameLabel
-            ShowNameLabel = new Label()
-            {
-                Text = labelText,
-                //計算文字在指定字型下的顯示大小
-                Width = (int)double.Parse(labelWidth.ToString()),
-                TextAlign = ContentAlignment.MiddleRight
+                else
+                {
+                    using (OpenFileDialog ofd = new OpenFileDialog { Filter = attr.Filter })
+                    {
+                        if (ofd.ShowDialog() == DialogResult.OK) textBox.Text = ofd.FileName;
+                    }
+                }
             };
 
-            //Step.2 根據Type設定EditControl
-            switch (prop.PropertyType)
-            {
-                case Type type when type == typeof(int):
-                    EditControl = new NumericUpDown()
-                    {
-                        Maximum = int.MaxValue,
-                        Minimum = int.MinValue,
-                        Width = DefaultControlWidth
-                    };
-                    break;
-                case Type type when type == typeof(string):
-                    EditControl = new TextBox()
-                    {
-                        Width = DefaultControlWidth
-                    };
-                    break;
-                    //default:
-                    //    EditControl = new Control();
-                    //    break;
-            }
-
-            //Step.3 Path結尾的Property的設定SelectButton
-            if (prop.PropertyType == typeof(string))
-            {
-                if (PropertyName.EndsWith("FolderPath"))
-                {
-                    SelectButton = new Button() { Text = "SelectFolder", Width = SelectButtonDefaultWidth };
-                    SelectButton.Click += (sender, e) =>
-                    {
-                        EditControl.Text = GetSelectFolderPath(EditControl.Text);
-                    };
-                }
-                else if (PropertyName.EndsWith("Path"))
-                {
-                    SelectButton = new Button() { Text = "SelectFile", Width = SelectButtonDefaultWidth };
-                    SelectButton.Click += (sender, e) =>
-                    {
-                        EditControl.Text = GetSelectFilePath(EditControl.Text);
-                    };
-                }
-            }
-        }
-
-        /// <summary>
-        /// 打開SelectFolder視窗
-        /// </summary>
-        /// <param name="defaultPath">預設資料夾</param>
-        /// <returns>選擇資料夾的路徑</returns>
-        private string GetSelectFolderPath(string defaultPath = "")
-        {
-            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
-            {
-                fbd.Description = "請選擇一個資料夾";
-                fbd.SelectedPath = defaultPath;     // 預設開啟的資料夾
-
-                if (fbd.ShowDialog() == DialogResult.OK)
-                    return fbd.SelectedPath;
-
-                return string.Empty;
-            }
-        }
-
-        /// <summary>
-        /// 打開SelectFile視窗
-        /// </summary>
-        /// <param name="defaultPath"></param>
-        /// <returns></returns>
-        private string GetSelectFilePath(string defaultPath = "")
-        {
-            using (OpenFileDialog ofd = new OpenFileDialog())
-            {
-                ofd.Title = "請選擇一個檔案";
-                ofd.Filter = "所有檔案 (*.*)|*.*";   // 或指定檔案類型
-                ofd.InitialDirectory = Path.GetDirectoryName(defaultPath); // 預設開啟的資料夾
-                ofd.FileName = Path.GetFileName(defaultPath);
-
-                if (ofd.ShowDialog() == DialogResult.OK)
-                    return ofd.FileName;
-
-                return string.Empty;
-            }
+            panel.Controls.Add(textBox);
+            panel.Controls.Add(selectButton);
+            return panel;
         }
     }
 
-    #endregion
-
-    #region ModelEditorForm
-    /// <summary>
-    /// ModelEditor編輯視窗
-    /// </summary>
     public class ModelEditorForm : Form
     {
-        public ModelEditorForm(GroupBox editorGroupBox)
-        {
-            Text = "ModelEditor";
-            AutoSize = true;
+        private readonly Action _OnSave;
 
-            Button confirmBtn = new Button
+        public ModelEditorForm(Control contentControl, Action onSaveLogic, string title = "編輯資料")
+        {
+            Text = title;
+            StartPosition = FormStartPosition.CenterParent;
+            AutoSize = true;
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+            // 限制最大寬度，避免太寬
+            MaximumSize = new Size(800, 600);
+            MinimumSize = new Size(400, 200);
+
+            _OnSave = onSaveLogic;
+
+            // 1. 內容區塊
+            GroupBox gb = new GroupBox
             {
-                Text = "確定",
-                Dock = DockStyle.Bottom
+                Text = "屬性",
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                Padding = new Padding(10)
+            };
+            gb.Controls.Add(contentControl);
+
+            // 2. 按鈕區塊 (FlowLayoutPanel 靠右排版)
+            FlowLayoutPanel btnPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                FlowDirection = FlowDirection.RightToLeft,
+                Height = 40,
+                Padding = new Padding(5)
             };
 
-            // 點按鈕時關閉視窗，並回傳 DialogResult.OK
-            confirmBtn.Click += (s, e) => DialogResult = DialogResult.OK;
+            Button btnCancel = new Button { Text = "取消", DialogResult = DialogResult.Cancel };
+            Button btnOk = new Button { Text = "確定", DialogResult = DialogResult.None }; // None: 因為我們要手動驗證與存檔
 
-            Controls.Add(editorGroupBox);
-            Controls.Add(confirmBtn);
+            btnOk.Click += BtnOk_Click;
 
-            // X 關閉按鈕預設會回傳 DialogResult.Cancel
-            CancelButton = confirmBtn; // 可選，讓 Esc 也觸發取消
+            btnPanel.Controls.Add(btnCancel);
+            btnPanel.Controls.Add(btnOk);
+
+            Controls.Add(gb);
+            Controls.Add(btnPanel);
+
+            // 設定表單行為
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
+        }
+
+        private void BtnOk_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                _OnSave?.Invoke(); // 觸發 SaveValues
+                this.DialogResult = DialogResult.OK; // 成功才關閉
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"存檔錯誤: {ex.Message}");
+            }
         }
     }
-    #endregion
 }

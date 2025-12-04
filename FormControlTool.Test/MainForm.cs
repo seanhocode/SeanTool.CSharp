@@ -1,4 +1,5 @@
 using SeanTool.CSharp.Net8.Forms;
+using System.ComponentModel;
 
 namespace SeanTool.CSharp.Net8.Forms.Test
 {
@@ -45,21 +46,21 @@ namespace SeanTool.CSharp.Net8.Forms.Test
 
         private void ModelEditorTestBtn_Click(object sender, EventArgs e)
         {
-            ModelEditorTest modelEditorTest = new ModelEditorTest();
-            Button customizeBtn = new Button();
+            TestModel people = new TestModel();
+            ModelEditor<TestModel> editor = new ModelEditor<TestModel>(people);
+            ModelEditorForm editForm = new ModelEditorForm(
+                editor.GenerateUI(),
+                editor.SaveValues,
+                "系統設定編輯"
+            );
+            ModelEditorForm viewForm = new ModelEditorForm(
+                editor.GenerateUI(true),
+                editor.SaveValues,
+                "系統設定編輯"
+            );
 
-            customizeBtn.Text = "Int+10";
-            customizeBtn.Click += (s, ev) =>
-            {
-                modelEditorTest.SaveModelEditorValue();
-                modelEditorTest.Int += 10;
-                modelEditorTest.LoadModelEditorValue();
-            };
-
-            modelEditorTest.AddCustomizeBtn(customizeBtn);
-
-            modelEditorTest.OpenEditWindow();
-            modelEditorTest.OpenViewWindow();
+            if (editForm.ShowDialog() == DialogResult.OK)
+                viewForm.ShowDialog();
         }
     }
 }
