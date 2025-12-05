@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace SeanTool.CSharp.Net8.Forms
 {
