@@ -47,29 +47,15 @@ namespace SeanTool.CSharp.Net8.Forms.Test
         private void ModelEditorTestBtn_Click(object sender, EventArgs e)
         {
             Person people = new Person();
-            ModelEditor<Person> editor = new ModelEditor<Person>(people);
-
-            // 1. 產生編輯介面 (此時 _ControlMap 指向編輯控制項)
-            var editUI = editor.GenerateUI(false);
 
             ModelEditorForm editForm = new ModelEditorForm(
-                editUI,
-                editor.SaveValues, // 這裡傳入的 SaveValues 會讀取目前的 _ControlMap (編輯控制項)
-                "系統設定編輯"
+                people,
+                viewMode: ModelEditorViewMode.Editor
             );
 
-            if (editForm.ShowDialog() == DialogResult.OK)
-            {
-                // 2. 只有在編輯完成且存檔後，才產生檢視介面
-                // 這會覆蓋 _ControlMap，但因為已經存完檔了，所以沒關係
-                ModelEditor<Person> viewer = new ModelEditor<Person>(people);
-
-                ModelEditorForm viewForm = new ModelEditorForm(
-                    viewer.GenerateUI(true),
-                    null,
-                    "系統設定檢視"
-                );
-                viewForm.ShowDialog();
+            if (editForm.ShowDialog() == DialogResult.OK){
+                editForm.ViewMode = ModelEditorViewMode.Viewer;
+                editForm.ShowDialog();
             }
         }
     }

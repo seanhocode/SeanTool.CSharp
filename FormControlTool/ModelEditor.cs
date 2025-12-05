@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SeanTool.CSharp.Net8.Forms
 {
@@ -23,12 +24,27 @@ namespace SeanTool.CSharp.Net8.Forms
         Folder
     }
 
-    public class ModelEditor<T> where T : class
+    public enum ModelEditorViewMode
     {
-        private readonly T _Model;
+        Editor,
+        Viewer
+    }
+
+    public class ModelEditor
+    {
+        /// <summary>
+        /// 切換編輯模式
+        /// </summary>
+        /// <remarks>
+        /// <para>編輯模式:Editor</para>
+        /// <para>檢視模式:Viewer</para>
+        /// </remarks>
+        public ModelEditorViewMode ViewMode { get { return _ViewMode; } set { UpdateModelEditorMode(value); } }
+        private ModelEditorViewMode _ViewMode { get; set; } = ModelEditorViewMode.Viewer;
+        private readonly object _Model;
         private readonly Dictionary<PropertyInfo, Control> _ControlMap = new Dictionary<PropertyInfo, Control>();
 
-        public ModelEditor(T model)
+        public ModelEditor(object model)
         {
             _Model = model ?? throw new ArgumentNullException(nameof(model));
         }
@@ -36,9 +52,10 @@ namespace SeanTool.CSharp.Net8.Forms
         /// <summary>
         /// 產生編輯介面的主控制項 (使用 TableLayoutPanel 自動排版)
         /// </summary>
-        public TableLayoutPanel GenerateUI(bool isViewer = false)
+        public TableLayoutPanel GenerateUI(ModelEditorViewMode viewMode = ModelEditorViewMode.Viewer)
         {
-            PropertyInfo[] modelProperties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            PropertyInfo[] modelProperties = _Model.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            ViewMode = viewMode;
 
             // 使用 TableLayoutPanel 取代絕對座標
             TableLayoutPanel layout = new TableLayoutPanel
@@ -72,7 +89,7 @@ namespace SeanTool.CSharp.Net8.Forms
                     Margin = new Padding(0, 6, 10, 0)               // 微調垂直位置
                 };
 
-                Control? editorControl = CreateEditorControl(prop, isViewer);
+                Control? editorControl = CreateEditorControl(prop);
 
                 if(editorControl == null) continue;
                 editorControl.Dock = DockStyle.Fill;
@@ -125,13 +142,43 @@ namespace SeanTool.CSharp.Net8.Forms
             }
         }
 
+        private void UpdateModelEditorMode(ModelEditorViewMode mode)
+        {
+            _ViewMode = mode;
+
+            foreach (KeyValuePair<PropertyInfo, Control> controlItem in _ControlMap)
+            {
+                Control control = controlItem.Value;
+                PropertyInfo prop = controlItem.Key;
+                
+                if (control is Panel panel)
+                {
+                    TextBox? pathTextBox = panel.Controls[0] as TextBox;
+                    Button? selectButton = panel.Controls[1] as Button;
+                    if (pathTextBox != null)
+                        pathTextBox.Enabled = ViewMode == ModelEditorViewMode.Editor;
+                    if (selectButton != null) 
+                        selectButton.Enabled = ViewMode == ModelEditorViewMode.Editor;
+                }
+                else if(control is Button && prop.PropertyType.IsClass)
+                {
+                    string modeStr = ViewMode == ModelEditorViewMode.Editor ? "編輯" : "檢視";
+                    control.Text = $"{modeStr} {prop.Name}";
+                }
+                else
+                {
+                    control.Enabled = ViewMode == ModelEditorViewMode.Editor;
+                }
+            }
+        }
+
         /// <summary>
         /// 建立對應屬性的編輯控制項
         /// </summary>
         /// <param name="prop"></param>
         /// <remarks>根據屬性類型建立相應的編輯控制項</remarks>
         /// <returns></returns>
-        private Control? CreateEditorControl(PropertyInfo prop, bool isViewer)
+        private Control? CreateEditorControl(PropertyInfo prop)
         {
             if (prop == null) throw new ArgumentNullException(nameof(prop));
             object? propValue = prop.GetValue(_Model);
@@ -139,13 +186,13 @@ namespace SeanTool.CSharp.Net8.Forms
 
             // ============================== Type-Boolean => CheckBox ==============================
             if (propType == typeof(bool))
-                return new CheckBox { Checked = (propValue as bool?) ?? false, Enabled = !isViewer };
+                return new CheckBox { Checked = (propValue as bool?) ?? false };
             // ============================== Type-Boolean => CheckBox ==============================
 
             // ============================== Type-Enum => ComboBox =================================
             if (propType.IsEnum)
             {
-                ComboBox comboBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Enabled = !isViewer };
+                ComboBox comboBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
                 Array enumValues = Enum.GetValues(propType);
 
                 // 在 Control 還沒加入 Form 之前，確保 Items.Count 
@@ -173,7 +220,7 @@ namespace SeanTool.CSharp.Net8.Forms
                 || propType == typeof(short) || propType == typeof(int) || propType == typeof(long)
             )
             {
-                NumericUpDown numericUpDown = new NumericUpDown { Enabled = !isViewer };
+                NumericUpDown numericUpDown = new NumericUpDown();
 
                 // 處理小數位數
                 switch (propType)
@@ -227,8 +274,7 @@ namespace SeanTool.CSharp.Net8.Forms
                 DateTimePicker dataTimePicker = new DateTimePicker()
                 {
                     Format = DateTimePickerFormat.Custom,
-                    CustomFormat = "yyyy/MM/dd HH:mm:ss", 
-                    Enabled = !isViewer
+                    CustomFormat = "yyyy/MM/dd HH:mm:ss"
                 }
                 ; ;
                 DateTime valueDT = (propValue as DateTime?) ?? DateTime.Now;
@@ -242,18 +288,20 @@ namespace SeanTool.CSharp.Net8.Forms
             // ============================== Type-String(CustomAttr) => PathSelector ===============
             EditorPathAttribute? pathAttr = prop.GetCustomAttribute<EditorPathAttribute>();
             if (pathAttr != null)
-                return CreatePathSelector(propValue?.ToString() ?? string.Empty, pathAttr, isViewer);
+                return CreatePathSelector(propValue?.ToString() ?? string.Empty, pathAttr);
             // ============================== Type-String(CustomAttr) => PathSelector ===============
 
             // ============================== Type-String => TextBox ================================
             if (propType == typeof(string))
-                return new TextBox { Text = propValue?.ToString() ?? string.Empty, Enabled = !isViewer };
+                return new TextBox { Text = propValue?.ToString() ?? string.Empty };
             // ============================== Type-String => TextBox ================================
 
             // ============================== Type-Class => ModelEditor =============================
             if (propType.IsClass && propType != typeof(string) && !typeof(System.Collections.IEnumerable).IsAssignableFrom(propType))
             {
-                Button editBtn = new Button { Text = isViewer ? $"檢視 {prop.Name}" : $"編輯 {prop.Name}", AutoSize = true };
+                Button editBtn = new Button { AutoSize = true };
+                string modeStr = ViewMode == ModelEditorViewMode.Editor ? "編輯" : "檢視";
+                editBtn.Text = $"{modeStr} {prop.Name}";
 
                 editBtn.Click += (s, e) =>
                 {
@@ -276,31 +324,13 @@ namespace SeanTool.CSharp.Net8.Forms
                                 return;
                             }
                         }
-
-                        // Step.2 利用 Reflection 動態建立 ModelEditor<T>
-                        Type editorSpecificType = typeof(ModelEditor<>).MakeGenericType(propType);
-                        object? subEditor = Activator.CreateInstance(editorSpecificType, subModel);
-
-                        if (subEditor == null) return;
-
-                        // Step.3 取得Editor畫面(利用 Reflection 呼叫 GenerateUI())
-                        MethodInfo? methodGenUI = editorSpecificType.GetMethod("GenerateUI");
-                        TableLayoutPanel? subModelEditorUI = methodGenUI?.Invoke(subEditor, new object[] { isViewer }) as TableLayoutPanel;
-
-                        // Step.4 取得存檔 method (利用 Reflection)
-                        MethodInfo? methodSave = editorSpecificType.GetMethod("SaveValues");
-                        Action subModelEditorSaveAction = () => methodSave?.Invoke(subEditor, null);
-
-                        if (subModelEditorUI != null)
+                        // Step.2 開啟子編輯器視窗
+                        using (ModelEditorForm subForm = new ModelEditorForm(subModel, $"{modeStr} - {prop.Name}", ViewMode))
                         {
-                            // Step.5 開啟新的視窗
-                            using (ModelEditorForm subForm = new ModelEditorForm(subModelEditorUI, subModelEditorSaveAction, $"編輯 - {prop.Name}"))
+                            if (subForm.ShowDialog() == DialogResult.OK)
                             {
-                                if (subForm.ShowDialog() == DialogResult.OK)
-                                {
-                                    // 雖然 subModel 是參考型別，修改屬性會直接反應，但為了保險起見 (或處理 struct) 再 SetValue 一次
-                                    prop.SetValue(_Model, subModel);
-                                }
+                                // 雖然 subModel 是參考型別，修改屬性會直接反應，但為了保險起見 (或處理 struct) 再 SetValue 一次
+                                prop.SetValue(_Model, subModel);
                             }
                         }
                     }
@@ -323,12 +353,12 @@ namespace SeanTool.CSharp.Net8.Forms
         /// <param name="initValue"></param>
         /// <param name="attr"></param>
         /// <returns>PathSelector</returns>
-        private Control CreatePathSelector(string initValue, EditorPathAttribute attr, bool isViewer)
+        private Control CreatePathSelector(string initValue, EditorPathAttribute attr)
         {
             Panel panel = new Panel { Height = 30, Margin = new Padding(0) }; // 容器
 
-            TextBox textBox = new TextBox { Text = initValue, Dock = DockStyle.Fill, Enabled = !isViewer };
-            Button selectButton = new Button { Text = "...", Width = 30, Dock = DockStyle.Right, Enabled = !isViewer };
+            TextBox textBox = new TextBox { Text = initValue, Dock = DockStyle.Fill };
+            Button selectButton = new Button { Text = "...", Width = 30, Dock = DockStyle.Right };
 
             selectButton.Click += (s, e) =>
             {
@@ -356,20 +386,29 @@ namespace SeanTool.CSharp.Net8.Forms
 
     public class ModelEditorForm : Form
     {
+        public ModelEditorViewMode ViewMode { get { return _EditorModel.ViewMode; } set { _EditorModel.ViewMode = value; } }
+        private ModelEditor _EditorModel;
         private readonly Action _SaveAction;
 
-        public ModelEditorForm(Control contentControl, Action saveAction, string title = "編輯資料")
+        public ModelEditorForm(object model, string title = "編輯資料", ModelEditorViewMode viewMode = ModelEditorViewMode.Viewer)
+        {
+            _EditorModel = new ModelEditor(model);
+
+            _SaveAction = _EditorModel.SaveValues;
+
+            Initialize(_EditorModel.GenerateUI(viewMode), title);
+
+            ViewMode = viewMode;
+        }
+
+        private void Initialize(Control contentControl, string title)
         {
             Text = title;
             StartPosition = FormStartPosition.CenterParent;
-            AutoSize = true;
-            AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
             // 限制最大寬度，避免太寬
             MaximumSize = new Size(800, 600);
             MinimumSize = new Size(400, 200);
-
-            _SaveAction = saveAction;
 
             // Step.1 內容區塊
             GroupBox groupBox = new GroupBox
@@ -381,7 +420,17 @@ namespace SeanTool.CSharp.Net8.Forms
             };
             groupBox.Controls.Add(contentControl);
 
-            // Step.2 按鈕區塊 (FlowLayoutPanel 靠右排版)
+            // Step.2 建立一個可捲動的 Panel 作為中間層
+            Panel scrollPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                AutoSize = true,
+                Padding = new Padding(5)
+            };
+            scrollPanel.Controls.Add(groupBox);
+
+            // Step.3 按鈕區塊 (FlowLayoutPanel 靠右排版)
             FlowLayoutPanel btnPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Bottom,
@@ -398,7 +447,7 @@ namespace SeanTool.CSharp.Net8.Forms
             btnPanel.Controls.Add(cancelBtn);
             btnPanel.Controls.Add(okBtn);
 
-            Controls.Add(groupBox);
+            Controls.Add(scrollPanel);
             Controls.Add(btnPanel);
 
             AcceptButton = okBtn;
