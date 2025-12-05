@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace SeanTool.CSharp.Net8.Test
 {
@@ -127,7 +128,12 @@ namespace SeanTool.CSharp.Net8.Test
         [Fact]
         public void ReadFileTest()
         {
-            string filePath = Path.Combine(FileTool.ThisExeDir, "Data", "TestLog.log");
+            DateTime baseTime = DateTime.Now.Date;
+            string testLogName = $"u_ex{baseTime.ToString("yyMMdd")}.log";
+
+            string filePath = Path.Combine(FileTool.ThisExeDir, "Data", testLogName);
+
+            GenTestLog(filePath);
 
             int dummy = 0, lineCount = 0;
             Action<string> processorSync = line =>
@@ -143,14 +149,24 @@ namespace SeanTool.CSharp.Net8.Test
             }
             sw.Stop();
 
-            Assert.Equal(10000004, lineCount);
-            Assert.True(sw.ElapsedMilliseconds < 2000);
+            Assert.Equal(10_000_004, lineCount);
+            Assert.True(sw.ElapsedMilliseconds < 2_000);
+
+            string dirPath = Path.GetDirectoryName(filePath)!;
+            if (Directory.Exists(dirPath) && !Directory.EnumerateFileSystemEntries(dirPath).Any())
+                Directory.Delete(dirPath);
         }
 
         [Fact]
         public async Task ReadFileAsyncTest()
         {
-            string filePath = Path.Combine(FileTool.ThisExeDir, "Data", "TestLog.log");
+            
+            DateTime baseTime = DateTime.Now.Date;
+            string testLogName = $"u_ex{baseTime.ToString("yyMMdd")}.log";
+
+            string filePath = Path.Combine(FileTool.ThisExeDir, "Data", testLogName);
+
+            GenTestLog(filePath);
 
             int dummy = 0, lineCount = 0;
             Func<string, Task> processorASync = line =>
@@ -166,8 +182,52 @@ namespace SeanTool.CSharp.Net8.Test
             }
             sw.Stop();
 
-            Assert.Equal(10000004, lineCount);
-            Assert.True(sw.ElapsedMilliseconds < 10000);
+            Assert.Equal(10_000_004, lineCount);
+            Assert.True(sw.ElapsedMilliseconds < 10_000);
+
+            File.Delete(filePath);
+
+            string dirPath = Path.GetDirectoryName(filePath)!;
+            if (Directory.Exists(dirPath) && !Directory.EnumerateFileSystemEntries(dirPath).Any())
+                Directory.Delete(dirPath);
+        }
+
+        private void GenTestLog(string logPath){
+            DateTime baseTime = DateTime.Now.Date;
+            const int lines = 10_000_000;
+            var sb = new StringBuilder(200);
+
+            if(!Directory.Exists(Path.GetDirectoryName(logPath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+            var rand = new Random();
+
+            using (var fs = new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.None, 64 * 1024))
+            using (var sw = new StreamWriter(fs))
+            {
+                // ---- IIS Header ----
+                sw.WriteLine("#Software: Microsoft Internet Information Services 10.0");
+                sw.WriteLine("#Version: 1.0");
+                sw.WriteLine($"#Date: {baseTime.ToString("yyyy-MM-dd HH:mm:ss")}");
+                sw.WriteLine("#Fields: date time cs-method cs-uri-stem sc-status sc-bytes cs-bytes time-taken");
+
+                var currentTime = baseTime;
+
+                for (int i = 0; i < lines; i++)
+                {
+                    // ---- 模式 B：遞增時間 + 隨機 0~50ms（類比負載） ----
+                    currentTime = currentTime.AddMilliseconds(rand.Next(0, 50));
+
+                    sb.Clear();
+                    sb.Append(currentTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    sb.Append(" GET /page?id=");
+                    sb.Append(i);
+                    sb.Append(" 200 1024 512 ");
+                    sb.Append(rand.Next(1, 200)); // time-taken
+
+                    sw.WriteLine(sb);
+                }
+            }
         }
     }
 }
