@@ -21,7 +21,7 @@ namespace SeanTool.CSharp.Net8
 
             if (root.TryGetProperty(rootProperty, out JsonElement targetElement) && targetElement.ValueKind == JsonValueKind.Object)
             {
-                foreach (var property in targetElement.EnumerateObject())
+                foreach (JsonProperty property in targetElement.EnumerateObject())
                 {
                     result.Add(property.Name);
                 }
@@ -69,19 +69,19 @@ namespace SeanTool.CSharp.Net8
         {
             string jsonString = File.ReadAllText(jsonFilePath);
 
-            var options = new JsonSerializerOptions
+            JsonSerializerOptions options = new JsonSerializerOptions
             {
                 WriteIndented = true
             };
 
             // 反序列化成 Dictionary
-            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonString, options)
+            Dictionary<string, object> dict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonString, options)
                        ?? new Dictionary<string, object>();
 
             if (dict.TryGetValue(rootProperty, out object? rootObj))
             {
                 // rootProperty 本身也是個 Dictionary
-                var rootDict = JsonSerializer.Deserialize<Dictionary<string, object>>(rootObj.ToString()!)
+                Dictionary<string, object> rootDict = JsonSerializer.Deserialize<Dictionary<string, object>>(rootObj.ToString()!)
                               ?? new Dictionary<string, object>();
 
                 // 更新或新增子屬性
