@@ -8,9 +8,30 @@ namespace SeanTool.CSharp.Net8
 {
     public static class ApiTool
     {
-        // readonly 確保不會有人在程式其他地方不小心把 _client 換掉
-        // _Client 會存在 Heap 記憶體，全體共用
-        private static HttpClient _Client = new HttpClient();
+        // Client 會存在 Heap 記憶體，全體共用
+        // 真正的實體
+        private static HttpClient? _LazyClient;
+
+        // 內部使用的屬性 (如果 _LazyClient 有值就用，沒有就 new 一個)
+        private static HttpClient Client
+        {
+            get
+            {
+                if (_LazyClient == null)
+                {
+                    _LazyClient = new HttpClient();
+                    // 設定預設 timeout 為 30 秒
+                    _LazyClient.Timeout = TimeSpan.FromSeconds(30);
+                }
+                return _LazyClient;
+            }
+        }
+
+        [Obsolete("此方法會直接替換靜態 HttpClient 實例，可能導致執行緒安全問題，除非有特殊需求，否則不建議使。", false)]
+        public static void SetClient(HttpClient client)
+        {
+            _LazyClient = client;
+        }
 
         // 預設 JSON 選項 (Web 預設通常不分大小寫)
         private static readonly JsonSerializerOptions DefaultJsonOptions = new()
@@ -22,8 +43,6 @@ namespace SeanTool.CSharp.Net8
         // Static Class 的建構子只會執行一次 (第一次呼叫此類別時)
         static ApiTool()
         {
-            // 設定預設 timeout 為 30 秒
-            _Client.Timeout = TimeSpan.FromSeconds(30);
         }
 
         public static async Task<T?> GetAsync<T>(
@@ -48,7 +67,7 @@ namespace SeanTool.CSharp.Net8
                 // Step.4 發送請求
                 // ResponseHeadersRead : 只要伺服器回傳了標頭 (Headers)，就立刻把控制權交還給程式，不等內容 (Body) 下載完
                 // ConfigureAwait(false) : 不強制回到原本的執行緒（Thread）繼續執行
-                using HttpResponseMessage response = await _Client.SendAsync(
+                using HttpResponseMessage response = await Client.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken).ConfigureAwait(false); 
@@ -83,7 +102,6 @@ namespace SeanTool.CSharp.Net8
                 ex.Data.Add("RequestUrl", url);
                 throw;
             }
-
         }
 
         public static async Task<TResponse?> PostAsync<TRequest, TResponse>(
@@ -111,7 +129,7 @@ namespace SeanTool.CSharp.Net8
 
                 // Step.4 發送請求
                 // ResponseHeadersRead : 只要伺服器回傳了標頭 (Headers)，就立刻把控制權交還給程式，不等內容 (Body) 下載完
-                using HttpResponseMessage response = await _Client.SendAsync(
+                using HttpResponseMessage response = await Client.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken).ConfigureAwait(false);

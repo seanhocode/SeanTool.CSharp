@@ -30,7 +30,7 @@ namespace SeanTool.CSharp.Net8.Test
 
             // 【關鍵步驟】使用 Reflection 強制替換 ApiTool 內部的 _Client
             // 注意：因為是 static readonly，這是一種 Hack，但在測試 legacy 或 static code 時很有用
-            var field = typeof(ApiTool).GetField("_Client", BindingFlags.Static | BindingFlags.NonPublic);
+            var field = typeof(ApiTool).GetField("_LazyClient", BindingFlags.Static | BindingFlags.NonPublic);
             if (field != null)
             {
                 field.SetValue(null, mockClient);
