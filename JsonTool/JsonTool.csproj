@@ -7,7 +7,7 @@
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>SeanTool.CSharp.Net8.JsonTool</PackageId>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Authors>Sean Ho</Authors>
     <Description>JsonTool</Description>
     <PackageTags>tool;json;net8</PackageTags>
