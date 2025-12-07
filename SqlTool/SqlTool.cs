@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using System.Data;
 using System.Reflection;
@@ -6,6 +7,26 @@ using System.Transactions;
 
 namespace SeanTool.CSharp.Net8
 {
+    /// <summary>
+    /// SqlTool 擴充方法
+    /// </summary>
+    /// <remarks></remarks>
+    public static class SqlToolExtensions
+    {
+        /// <summary>
+        /// 擴充 IServiceCollection
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="connectionString"></param>
+        /// <returns>使用方式:於Program.cs => builder.Services.AddSqlTool([connStr]);</returns>
+        public static IServiceCollection AddSqlTool(this IServiceCollection services, string connectionString)
+        {
+            // 把剛剛那段註冊邏輯藏在這裡
+            services.AddSingleton<ISqlTool>(sp => new SqlTool(connectionString));
+            return services;
+        }
+    }
+
     public class SqlTool : IDisposable, ISqlTool
     {
         private readonly string _ConnectionString;
