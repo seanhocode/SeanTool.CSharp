@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -6,32 +7,32 @@ using System.Text.Json;
 
 namespace SeanTool.CSharp.Net8
 {
-    public static class ApiTool
+    public static class ApiToolExtensions
     {
-        // Client 會存在 Heap 記憶體，全體共用
-        // 真正的實體
-        private static HttpClient? _LazyClient;
-
-        // 內部使用的屬性 (如果 _LazyClient 有值就用，沒有就 new 一個)
-        private static HttpClient Client
+        public static IServiceCollection AddApiTool(this IServiceCollection services)
         {
-            get
+            // Step.1 註冊 HttpClient (並在此設定全域 Timeout)
+            services.AddHttpClient("ApiTool", client =>
             {
-                if (_LazyClient == null)
-                {
-                    _LazyClient = new HttpClient();
-                    // 設定預設 timeout 為 30 秒
-                    _LazyClient.Timeout = TimeSpan.FromSeconds(30);
-                }
-                return _LazyClient;
-            }
-        }
+                // 建議在此處設定 Timeout，預設是 100秒
+                client.Timeout = TimeSpan.FromSeconds(30);
+                // 也可以設定 User-Agent 等預設標頭
+                // client.DefaultRequestHeaders.Add("User-Agent", "SeanTool");
+            });
 
-        [Obsolete("此方法會直接替換靜態 HttpClient 實例，可能導致執行緒安全問題，除非有特殊需求，否則不建議使。", false)]
-        public static void SetClient(HttpClient client)
-        {
-            _LazyClient = client;
+            // Step.2 註冊 ApiTool
+            // 注意：因為我們用了具名 Client ("ApiTool")，所以在 ApiTool 建構子需要調整一下拿到正確的 Client
+            services.AddSingleton<IApiTool, ApiTool>();
+
+            return services;
         }
+    }
+
+    public class ApiTool : IApiTool
+    {
+        // 在 .NET Core / .NET 5+ 之後，微軟強烈建議使用 IHttpClientFactory 來管理 HttpClient
+        // 可以解決 DNS 重新整理的問題 (Socket Exhaustion)，並且更容易配合 Polly 做重試機制
+        private readonly IHttpClientFactory _HttpClientFactory;
 
         // 預設 JSON 選項 (Web 預設通常不分大小寫)
         private static readonly JsonSerializerOptions DefaultJsonOptions = new()
@@ -40,12 +41,12 @@ namespace SeanTool.CSharp.Net8
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        // Static Class 的建構子只會執行一次 (第一次呼叫此類別時)
-        static ApiTool()
+        public ApiTool(IHttpClientFactory httpClientFactory)
         {
+            _HttpClientFactory = httpClientFactory;
         }
 
-        public static async Task<T?> GetAsync<T>(
+        public async Task<T?> GetAsync<T>(
             string url,
             Dictionary<string, string>? headers = null,
             Dictionary<string, string>? queryParams = null,
@@ -57,6 +58,9 @@ namespace SeanTool.CSharp.Net8
             {
                 options ??= DefaultJsonOptions;
 
+                // 每次建立新的 Client (由 Factory 管理底層連線池，不用擔心效能)
+                using HttpClient client = CreateClient();
+
                 // Step.1 建立獨立的請求 (HttpRequestMessage)
                 // 這裡的 request 是區域變數，只屬於這次呼叫
                 using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, GenRequestQueryString(url, queryParams));
@@ -67,10 +71,10 @@ namespace SeanTool.CSharp.Net8
                 // Step.4 發送請求
                 // ResponseHeadersRead : 只要伺服器回傳了標頭 (Headers)，就立刻把控制權交還給程式，不等內容 (Body) 下載完
                 // ConfigureAwait(false) : 不強制回到原本的執行緒（Thread）繼續執行
-                using HttpResponseMessage response = await Client.SendAsync(
+                using HttpResponseMessage response = await client.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken).ConfigureAwait(false); 
+                    cancellationToken).ConfigureAwait(false);
 
                 response.EnsureSuccessStatusCode();
 
@@ -90,7 +94,7 @@ namespace SeanTool.CSharp.Net8
                 // 注意：這裡必須用 await，因為它是一邊讀 Stream 一邊轉物件
                 return await JsonSerializer.DeserializeAsync<T>(stream, options, cancellationToken).ConfigureAwait(false);
             }
-            catch (HttpRequestException )
+            catch (HttpRequestException)
             {
                 throw;
             }
@@ -104,7 +108,7 @@ namespace SeanTool.CSharp.Net8
             }
         }
 
-        public static async Task<TResponse?> PostAsync<TRequest, TResponse>(
+        public async Task<TResponse?> PostAsync<TRequest, TResponse>(
             string url,
             TRequest payload,
             Dictionary<string, string>? headers = null,
@@ -116,6 +120,8 @@ namespace SeanTool.CSharp.Net8
             try
             {
                 options ??= DefaultJsonOptions;
+
+                using HttpClient client = CreateClient();
 
                 // Step.1 建立 RequestMessage
                 using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, GenRequestQueryString(url, queryParams));
@@ -129,7 +135,7 @@ namespace SeanTool.CSharp.Net8
 
                 // Step.4 發送請求
                 // ResponseHeadersRead : 只要伺服器回傳了標頭 (Headers)，就立刻把控制權交還給程式，不等內容 (Body) 下載完
-                using HttpResponseMessage response = await Client.SendAsync(
+                using HttpResponseMessage response = await client.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken).ConfigureAwait(false);
@@ -166,9 +172,20 @@ namespace SeanTool.CSharp.Net8
         }
 
         /// <summary>
+        /// 取得 Client 的輔助屬性或方法
+        /// </summary>
+        /// <returns></returns>
+        private HttpClient CreateClient()
+        {
+            // 使用與註冊時相同的名稱，這樣才能吃到 Timeout 設定
+            // 如果 AddHttpClient 沒有給名稱，這邊就用 CreateClient() 即可
+            return _HttpClientFactory.CreateClient("ApiTool");
+        }
+
+        /// <summary>
         /// 設定 Header
         /// </summary>
-        private static void AddHeaders(HttpRequestMessage request, Dictionary<string, string>? headers, string? bearerToken)
+        private void AddHeaders(HttpRequestMessage request, Dictionary<string, string>? headers, string? bearerToken)
         {
             if (headers != null)
             {
@@ -190,7 +207,7 @@ namespace SeanTool.CSharp.Net8
         /// <param name="url"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        private static string GenRequestQueryString(string url, Dictionary<string, string>? parameters)
+        private string GenRequestQueryString(string url, Dictionary<string, string>? parameters)
         {
             if (parameters == null || parameters.Count == 0) return url;
 
