@@ -141,6 +141,39 @@ namespace SeanTool.CSharp.Net8.Forms
             }
         }
 
+        /// <summary>
+        /// 將 Model 的值更新到 UI
+        /// </summary>
+        public void UpdateValues(){
+            foreach(KeyValuePair<PropertyInfo, Control> controlItem in _ControlMap)
+            {
+                PropertyInfo modelProp = controlItem.Key;
+                Control control = controlItem.Value;
+                object? propValue = modelProp.GetValue(_Model);
+                try
+                {
+                    // 取得 Nullable 的底層型別，若非 Nullable 則為原刑別
+                    Type propType = Nullable.GetUnderlyingType(modelProp.PropertyType) ?? modelProp.PropertyType;
+                    if (control is CheckBox checkBox) { checkBox.Checked = (propValue as bool?) ?? false; }
+                    else if (control is NumericUpDown num && propValue != null) { num.Value = Convert.ToDecimal(propValue); }
+                    else if (control is DateTimePicker dateTimePicker && propValue != null) { dateTimePicker.Value = (DateTime)propValue; }
+                    else if (control is ComboBox comboBox && propValue != null) { comboBox.SelectedItem = propValue; }
+                    else if (control is TextBox textBox) { textBox.Text = propValue?.ToString() ?? string.Empty; }
+                    // 處理複合控制項 (Path Selector)
+                    else if (control is Panel panel)
+                    {
+                        TextBox? pathTextBox = panel.Controls[0] as TextBox;
+                        if (pathTextBox != null)
+                            pathTextBox.Text = propValue?.ToString() ?? string.Empty;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"更新屬性 {modelProp.Name} 失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         private void UpdateModelEditorMode(ModelEditorViewMode mode)
         {
             _ViewMode = mode;
@@ -385,9 +418,14 @@ namespace SeanTool.CSharp.Net8.Forms
 
     public class ModelEditorForm : Form
     {
-        public ModelEditorViewMode ViewMode { get { return _EditorModel.ViewMode; } set { _EditorModel.ViewMode = value; } }
+        /// <summary>
+        /// ModelEditor 的檢視模式
+        /// </summary>
+        public ModelEditorViewMode ViewMode { get { return _EditorModel.ViewMode; } set { UpdateModelEditorMode(value); } }
         private ModelEditor _EditorModel;
         private readonly Action _SaveAction;
+        private FlowLayoutPanel? _CustomBtnPanel;
+        private List<Button>? _CustomizeButtons = new List<Button>();
 
         public ModelEditorForm(object model, string title = "編輯資料", ModelEditorViewMode viewMode = ModelEditorViewMode.Viewer)
         {
@@ -400,6 +438,41 @@ namespace SeanTool.CSharp.Net8.Forms
             ViewMode = viewMode;
         }
 
+        /// <summary>
+        /// 將 UI 的值寫回 Model
+        /// </summary>
+        public void SaveToModel()
+        {
+            _EditorModel.SaveValues();
+        }
+
+        /// <summary>
+        /// 從 Model 更新 UI 的值
+        /// </summary>
+        public void LoadFromModel()
+        {
+            _EditorModel.UpdateValues();
+        }
+
+        /// <summary>
+        /// 新增自訂按鈕
+        /// </summary>
+        /// <remarks>目前只會在EditorMode顯示</remarks>
+        /// <param name="customizeBtn"></param>
+        public void AddCustomizeBtn(Button customizeBtn)
+        {
+            _CustomizeButtons.Add(customizeBtn);
+            _CustomBtnPanel.Controls.Add(customizeBtn);
+        }
+
+        private void UpdateModelEditorMode(ModelEditorViewMode mode)
+        {
+            _EditorModel.ViewMode = mode;
+
+            foreach (Button btn in _CustomizeButtons)
+                btn.Visible = mode == ModelEditorViewMode.Editor;
+        }
+
         private void Initialize(Control contentControl, string title)
         {
             Text = title;
@@ -409,27 +482,65 @@ namespace SeanTool.CSharp.Net8.Forms
             MaximumSize = new Size(800, 600);
             MinimumSize = new Size(400, 200);
 
-            // Step.1 內容區塊
-            GroupBox groupBox = new GroupBox
+            (Panel scrollPanel, GroupBox editorBox) = GenMainForm(contentControl);
+
+            FlowLayoutPanel bottomBtnPanel = GenBottomButtonPanel();
+
+            Controls.Add(scrollPanel);
+            Controls.Add(bottomBtnPanel);
+
+            CalcFormSize(editorBox, bottomBtnPanel.Height);
+        }
+
+        /// <summary>
+        /// 生成主編輯區塊
+        /// </summary>
+        /// <param name="contentControl"></param>
+        /// <returns>主編輯區塊GroupBox</returns>
+        private (Panel scrollPanel, GroupBox editorBox) GenMainForm(Control? contentControl){
+            // Step.1 建立一個可捲動的 Panel 作為中間層
+            Panel scrollPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(5)
+            };
+
+            // Step.2 內容區塊
+            GroupBox editorGroupBox = new GroupBox
             {
                 Text = "屬性",
                 Dock = DockStyle.Top,
                 AutoSize = true,
                 Padding = new Padding(10)
             };
-            groupBox.Controls.Add(contentControl);
+            editorGroupBox.Controls.Add(contentControl);
+            scrollPanel.Controls.Add(editorGroupBox);
 
-            // Step.2 建立一個可捲動的 Panel 作為中間層
-            Panel scrollPanel = new Panel
+            // Step.3 自訂按鈕區塊
+            _CustomBtnPanel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Fill,
-                AutoScroll = true,
+                Dock = DockStyle.Bottom,
                 AutoSize = true,
-                Padding = new Padding(5)
+                FlowDirection = FlowDirection.LeftToRight, // 按鈕由左至右排列
+                Padding = new Padding(10, 5, 10, 5),       // 上下留點空白
             };
-            scrollPanel.Controls.Add(groupBox);
+            if (_CustomizeButtons?.Count > 0)
+            {
+                foreach (Button btn in _CustomizeButtons)
+                    _CustomBtnPanel.Controls.Add(btn);
+            }
+            scrollPanel.Controls.Add(_CustomBtnPanel);
 
-            // Step.3 按鈕區塊 (FlowLayoutPanel 靠右排版)
+            return (scrollPanel, editorGroupBox);
+        }
+
+        /// <summary>
+        /// 生成下方按鈕區塊(FlowLayoutPanel 靠右排版) 
+        /// </summary>
+        /// <returns>按鈕區塊Panel</returns>
+        private FlowLayoutPanel GenBottomButtonPanel()
+        {
             FlowLayoutPanel btnPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Bottom,
@@ -445,12 +556,43 @@ namespace SeanTool.CSharp.Net8.Forms
 
             btnPanel.Controls.Add(cancelBtn);
             btnPanel.Controls.Add(okBtn);
-
-            Controls.Add(scrollPanel);
-            Controls.Add(btnPanel);
-
+            
             AcceptButton = okBtn;
             CancelButton = cancelBtn;
+
+            return btnPanel;
+        }
+
+        /// <summary>
+        /// 計算並設定視窗大小
+        /// </summary>
+        /// <param name="editorGroupBox"></param>
+        /// <param name="btnPanel"></param>
+        private void CalcFormSize(GroupBox editorGroupBox, int btnPanelHeight)
+        {
+            // 暫停佈局邏輯，避免計算過程中畫面閃爍
+            this.SuspendLayout();
+
+            // Step.1 強制讓內部控制項計算好自己的 PreferredSize
+            // 有時候內容太多尚未繪製，尺寸會是 0，Performlayout 確保計算完成
+            editorGroupBox.PerformLayout();
+
+            // Step.2 計算內容所需的總高度
+            // 內容高度 = GroupBox 高度 + 自訂按鈕區高度 + 底部按鈕區高度 + 視窗邊框與標題列緩衝(約30-40)
+            int contentHeight = editorGroupBox.PreferredSize.Height + _CustomBtnPanel.PreferredSize.Height + btnPanelHeight + 50;
+
+            // Step.3 計算內容所需的寬度 (取 GroupBox 與 最小寬度的較大者)
+            int contentWidth = Math.Max(editorGroupBox.PreferredSize.Width + 30, MinimumSize.Width);
+
+            // Step.4 設定視窗大小 (ClientSize 代表不含標題列的內部區域)
+            // 使用 Math.Min 確保不會超過 MaximumSize，超過就會自動出現 ScrollBar
+            int finalHeight = Math.Min(contentHeight, MaximumSize.Height);
+            int finalWidth = Math.Min(contentWidth, MaximumSize.Width);
+
+            this.ClientSize = new Size(finalWidth, finalHeight);
+
+            // 恢復佈局
+            this.ResumeLayout(false);
         }
 
         private void OkBtn_Click(object sender, EventArgs e)
