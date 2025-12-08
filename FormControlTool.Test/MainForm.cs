@@ -47,11 +47,30 @@ namespace SeanTool.CSharp.Net8.Forms.Test
         private void ModelEditorTestBtn_Click(object sender, EventArgs e)
         {
             Person people = new Person();
-
+            Button addAgeBtn = new Button();
+            Button minusdAgeBtn = new Button();
             ModelEditorForm editForm = new ModelEditorForm(
                 people,
                 viewMode: ModelEditorViewMode.Editor
             );
+
+            addAgeBtn.Text = "Age+1";
+            addAgeBtn.Click += (s, eArgs) =>
+            {
+                editForm.SaveToModel();
+                people.Age += 1;
+                editForm.LoadFromModel();
+            };
+            minusdAgeBtn.Text = "Age-1";
+            minusdAgeBtn.Click += (s, eArgs) =>
+            {
+                editForm.SaveToModel();
+                people.Age -= 1;
+                editForm.LoadFromModel();
+            };
+
+            editForm.AddCustomizeBtn(addAgeBtn);
+            editForm.AddCustomizeBtn(minusdAgeBtn);
 
             if (editForm.ShowDialog() == DialogResult.OK){
                 editForm.ViewMode = ModelEditorViewMode.Viewer;
