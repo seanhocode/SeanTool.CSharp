@@ -1,5 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualBasic;
+using System;
 using System.Collections;
 using System.Data;
 using System.Reflection;
@@ -7,6 +9,26 @@ using System.Transactions;
 
 namespace SeanTool.CSharp.Net8
 {
+    public class TableNameAttribute : Attribute
+    {
+        public string TableName { get; }
+
+        public TableNameAttribute(string tableName)
+        {
+            TableName = tableName;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]// 限制只能貼在屬性上
+    public class PrimaryKeyAttribute : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]// 限制只能貼在屬性上
+    public class IdentityAttribute : Attribute
+    {
+    }
+
     /// <summary>
     /// SqlTool 擴充方法
     /// </summary>
@@ -21,14 +43,15 @@ namespace SeanTool.CSharp.Net8
         /// <returns>使用方式:於Program.cs => builder.Services.AddSqlTool([connStr]);</returns>
         public static IServiceCollection AddSqlTool(this IServiceCollection services, string connectionString)
         {
-            // 把剛剛那段註冊邏輯藏在這裡
-            services.AddSingleton<ISqlTool>(sp => new SqlTool(connectionString));
+            // Scoped 服務會在每次 HTTP 請求進來時建立一個新的實體，並在請求結束時自動釋放
+            services.AddScoped<ISqlTool>(sp => new SqlTool(connectionString));
             return services;
         }
     }
 
     public class SqlTool : IDisposable, ISqlTool
     {
+        # region Main
         private readonly string _ConnectionString;
 
         // 暫存共用連線與交易
@@ -164,6 +187,32 @@ namespace SeanTool.CSharp.Net8
             conn.Dispose();
         }
 
+        private (SqlDbType Type, int Size) GetSqlDbType(Type type)
+        {
+            // 取得底層型別 (處理 Nullable<T>)
+            Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+            if (underlyingType == typeof(int)) return (SqlDbType.Int, 0);
+            if (underlyingType == typeof(long)) return (SqlDbType.BigInt, 0);
+            if (underlyingType == typeof(short)) return (SqlDbType.SmallInt, 0);
+            if (underlyingType == typeof(byte)) return (SqlDbType.TinyInt, 0);
+            if (underlyingType == typeof(bool)) return (SqlDbType.Bit, 0);
+            if (underlyingType == typeof(DateTime)) return (SqlDbType.DateTime2, 0); // 建議用 DateTime2 避免 1753 年限制
+            if (underlyingType == typeof(decimal)) return (SqlDbType.Decimal, 0);
+            if (underlyingType == typeof(double)) return (SqlDbType.Float, 0);
+            if (underlyingType == typeof(float)) return (SqlDbType.Real, 0);
+            if (underlyingType == typeof(Guid)) return (SqlDbType.UniqueIdentifier, 0);
+            if (underlyingType == typeof(byte[])) return (SqlDbType.VarBinary, -1); // -1 代表 MAX
+
+            // 若 DB 為 VARCHAR，C# 傳 NVARCHAR 會導致索引失效
+            // 這裡指定 VarChar 解決隱性轉型，Size 設為 -1 (MAX) 或 8000 可涵蓋大多數情況
+            // 但 ADO.NET 會自動根據值調整，除非需要截斷
+            if (underlyingType == typeof(string)) return (SqlDbType.VarChar, -1);
+
+            // 預設 fallback
+            return (SqlDbType.Variant, 0);
+        }
+
         /// <summary>
         /// 處理參數
         /// </summary>
@@ -176,15 +225,38 @@ namespace SeanTool.CSharp.Net8
                 foreach (DictionaryEntry entry in dict)
                 {
                     string key = entry.Key.ToString() ?? "";
-                    if (!string.IsNullOrEmpty(key))
-                        cmd.Parameters.AddWithValue(key, entry.Value ?? DBNull.Value);
+                    if (string.IsNullOrEmpty(key)) continue;
+
+                    object val = entry.Value ?? DBNull.Value;
+
+                    // Dictionary 比較難推斷屬性型別，通常依賴值的型別
+                    // 若 val 是 null，預設用 VarChar
+                    Type valType = val != DBNull.Value ? val.GetType() : typeof(string);
+
+                    var (dbType, size) = GetSqlDbType(valType);
+
+                    // 修正 Dictionary key 需補上 @ (如果沒有的話)
+                    string paramName = key.StartsWith("@") ? key : $"@{key}";
+
+                    SqlParameter param = cmd.Parameters.Add(paramName, dbType, size);
+                    param.Value = val;
                 }
             }
             else
             {
+                // AddWithValue在處理字串(String)時，通常會預設為 NVARCHAR(4000)。
+                // 如果資料庫欄位是 VARCHAR 且有索引(Index)，這會導致 SQL Server 發生 隱式轉型(Implicit Conversion)
+                // 導致索引失效，全表掃描(Full Table Scan)，效能大幅下降
                 foreach (PropertyInfo prop in parameters.GetType().GetProperties())
                 {
-                    cmd.Parameters.AddWithValue($"@{prop.Name}", prop.GetValue(parameters) ?? DBNull.Value);
+                    // 1. 取得對應的 SqlDbType
+                    var (dbType, size) = GetSqlDbType(prop.PropertyType);
+
+                    // 2. 建立參數 (明確指定型別，解決隱性轉型效能問題)
+                    SqlParameter param = cmd.Parameters.Add($"@{prop.Name}", dbType, size);
+
+                    // 3. 設定值
+                    param.Value = prop.GetValue(parameters) ?? DBNull.Value;
                 }
             }
         }
@@ -291,5 +363,191 @@ namespace SeanTool.CSharp.Net8
 
             GC.SuppressFinalize(this);
         }
+        # endregion
+
+        # region Extensions
+        private string GetTableName<T>()
+        {
+            Type type = typeof(T);
+            TableNameAttribute? attr = type.GetCustomAttributes(typeof(TableNameAttribute), true)
+                                                .FirstOrDefault() as TableNameAttribute;
+
+            if (attr != null)
+                return attr.TableName;
+
+            return type.Name;
+        }
+
+        private IList<PropertyInfo> GetInsertProperties<T>()
+        {
+            return typeof(T).GetProperties().Where(p => p.GetCustomAttribute<IdentityAttribute>() == null).ToList();
+        }
+
+        private IList<PropertyInfo> GetSetProperties<T>()
+        {
+            return typeof(T).GetProperties()
+                .Where(p => p.GetCustomAttribute<PrimaryKeyAttribute>() == null
+                         && p.GetCustomAttribute<IdentityAttribute>() == null)
+                .ToList();
+        }
+
+        private IList<PropertyInfo> GetKeyProperties<T>()
+        {
+            return typeof(T).GetProperties()
+                .Where(p => p.GetCustomAttribute<PrimaryKeyAttribute>() != null)
+                .ToList();
+        }
+
+        private DataTable ModelToDataTable<T>(IEnumerable<T> data)
+        {
+            DataTable dt = new DataTable();
+            PropertyInfo[] properties = typeof(T).GetProperties();
+
+            dt.TableName = GetTableName<T>();
+
+            foreach (PropertyInfo prop in properties)
+                dt.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+
+            foreach (T item in data)
+            {
+                DataRow row = dt.NewRow();
+
+                foreach (PropertyInfo prop in properties)
+                    row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
+
+                dt.Rows.Add(row);
+            }
+
+            return dt;
+        }
+
+        public int SingleInsert<T>(T data)
+        {
+            string tableName = GetTableName<T>();
+
+            IList<PropertyInfo> properties = GetInsertProperties<T>();
+
+            string columns = string.Join(", ", properties.Select(p => p.Name));
+            string values = string.Join(", ", properties.Select(p => $"@{p.Name}"));
+            string sql = $"INSERT INTO {tableName} ({columns}) VALUES ({values})";
+
+            return ExecuteNonQuery(sql, data);
+        }
+
+        public void BulkInsert<T>(IEnumerable<T> data)
+        {
+            DataTable dt = ModelToDataTable(data);
+
+            BulkInsert(dt);
+        }
+
+        public void BulkInsert(DataTable dt)
+        {
+            // 判斷是否使用共用連線
+            // 如果有共用連線 (_SharedConn)，就必須使用它，並帶上交易 (_SharedTrans)
+            // 外部需呼叫 OpenSharedConnection
+
+            // 確保連線是開的
+            if (_SharedConn == null || _SharedConn.State != ConnectionState.Open)
+                throw new InvalidOperationException("使用 BulkInsert 前請確保連線已開啟 (OpenSharedConnection)");
+
+            using (SqlBulkCopy bulk = new SqlBulkCopy(_SharedConn, SqlBulkCopyOptions.Default, _SharedTrans))
+            {
+                bulk.DestinationTableName = dt.TableName;
+                bulk.BulkCopyTimeout = 600;
+
+                // 依欄位名稱建立對應，確保資料不會錯位
+                foreach (DataColumn col in dt.Columns)
+                    bulk.ColumnMappings.Add(col.ColumnName, col.ColumnName);
+
+                bulk.WriteToServer(dt);
+            }
+        }
+
+        public int SingleUpdate<T>(T data)
+        {
+            string tableName = GetTableName<T>();
+
+            IList<PropertyInfo> setProperties = GetSetProperties<T>();
+
+            IList<PropertyInfo> keyProperties = GetKeyProperties<T>();
+
+            if (!setProperties.Any() || !keyProperties.Any())
+                throw new InvalidOperationException("Update 操作需要至少一個可更新欄位以及至少一個 PrimaryKey 欄位。");
+
+            string setClause = string.Join(", ", setProperties.Select(p => $"{p.Name} = @{p.Name}"));
+            string whereClause = string.Join(" AND ", keyProperties.Select(p => $"{p.Name} = @{p.Name}"));
+
+            string sql = $"UPDATE {tableName} SET {setClause} WHERE {whereClause}";
+
+            return ExecuteNonQuery(sql, data);
+        }
+
+        public void BulkUpdate<T>(IEnumerable<T> data)
+        {
+            // 標記這次操作是否是由此方法「主動」開啟連線的
+            bool isLocalOpen = false;
+
+            // 如果使用者沒有先開啟共用連線，ExecuteNonQuery會關閉連線，且建立的Temp也會不見
+            // 檢查連線狀態：如果是關閉的，就強制打開，並標記起來
+            if (_SharedConn == null || _SharedConn.State != ConnectionState.Open)
+            {
+                OpenSharedConnection();
+                isLocalOpen = true;
+            }
+
+            DataTable dt = ModelToDataTable(data);
+            string targetTableName = dt.TableName;
+            string tempTableName = "#TempUpdate_" + Guid.NewGuid().ToString("N");
+
+            try
+            {
+                ExecuteNonQuery($"SELECT * INTO {tempTableName} FROM {targetTableName} WHERE 1 = 0");
+
+                dt.TableName = tempTableName;
+                BulkInsert(dt);
+
+                IList<PropertyInfo> setProperties = GetSetProperties<T>();
+                IList<PropertyInfo> keyProperties = GetKeyProperties<T>();
+
+                string setClause = string.Join(", ", setProperties.Select(p => $"T.{p.Name} = Temp.{p.Name}"));
+                string onClause = string.Join(" AND ", keyProperties.Select(p => $"T.{p.Name} = Temp.{p.Name}"));
+
+                string sql = $@"
+                    UPDATE T
+                    SET {setClause}
+                    FROM {targetTableName} T
+                    JOIN {tempTableName} Temp ON {onClause};
+                ";
+
+                ExecuteNonQuery(sql);
+            }
+            finally
+            {
+                ExecuteNonQuery($"DROP TABLE IF EXISTS {tempTableName}");
+
+                // 如果原本外面就有開啟交易 (Transaction)，這裡就不能關，否則會中斷交易
+                if (isLocalOpen)
+                {
+                    _SharedConn?.Close();
+                }
+            }
+        }
+
+        public int Delete<T>(T data)
+        {
+            string tableName = GetTableName<T>();
+
+            var keyProperties = GetKeyProperties<T>();
+
+            if (!keyProperties.Any())
+                throw new InvalidOperationException("Delete 操作需要至少一個 PrimaryKey 欄位。");
+
+            string whereClause = string.Join(" AND ", keyProperties.Select(p => $"{p.Name} = @{p.Name}"));
+            string sql = $"DELETE FROM {tableName} WHERE {whereClause}";
+
+            return ExecuteNonQuery(sql, data);
+        }
+        # endregion
     }
 }

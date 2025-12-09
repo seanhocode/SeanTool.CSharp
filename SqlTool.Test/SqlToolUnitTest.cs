@@ -1,24 +1,100 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 
 namespace SeanTool.CSharp.Net8.Test
 {
-    public class SqlToolUnitTest : IDisposable
+    // 1. 定義測試資料模型
+    [TableName("TestUsers")]
+    public class TestUser
     {
-        // 使用 LocalDB 進行測試，通常 Visual Studio 安裝後都會有
-        private const string _ConnStr = "Server=(localdb)\\MSSQLLocalDB;Database=tempdb;Trusted_Connection=True;TrustServerCertificate=True;";
-        private readonly string _TableName;
+        [Identity]
+        public int Id { get; set; }
+        [PrimaryKey]
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public int Age { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 
-        public SqlToolUnitTest()
+    // 2. 定義 Fixture (負責資料庫連線字串與基礎環境)
+    public class DatabaseFixture : IDisposable
+    {
+        // 連線字串 (請根據實際環境調整)
+        // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;User Id=你的帳號;Password=你的密碼;TrustServerCertificate=True;"
+        public string ConnectionString { get; } = @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;Trusted_Connection=True;TrustServerCertificate=True;";
+
+        public DatabaseFixture()
         {
-            // 每次測試都建立一個隨機名稱的 Table，避免並行測試衝突
-            _TableName = $"TestTable_{Guid.NewGuid().ToString("N")}";
-            CreateTestTable();
+            // 初始化主要測試表 (給 Model 測試用)
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                conn.Open();
+                string sql = @"
+                    IF OBJECT_ID('TestUsers', 'U') IS NOT NULL DROP TABLE TestUsers;
+                    CREATE TABLE TestUsers (
+                        Id INT IDENTITY(1,1),
+                        UserId INT NOT NULL,
+                        UserName NVARCHAR(50),
+                        Age INT,
+                        CreatedAt DATETIME2,
+                        CONSTRAINT PK_TestUsers PRIMARY KEY (UserId)
+                    );";
+                using (var cmd = new SqlCommand(sql, conn)) cmd.ExecuteNonQuery();
+            }
         }
 
-        private void CreateTestTable()
+        public void Dispose()
         {
-            using var tool = new SqlTool(_ConnStr);
-            string sql = $@"CREATE TABLE {_TableName} (
+            // 清理主要測試表
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                conn.Open();
+                string sql = "IF OBJECT_ID('TestUsers', 'U') IS NOT NULL DROP TABLE TestUsers;";
+                using (var cmd = new SqlCommand(sql, conn)) cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    // 3. 完整的測試類別
+    public class SqlToolCompleteTests : IClassFixture<DatabaseFixture>, IDisposable
+    {
+        private readonly DatabaseFixture _fixture;
+        private readonly IServiceProvider _serviceProvider;
+        
+        // 專門用於 Ad-hoc 測試的動態 Table 名稱
+        private readonly string _tempTableName;
+
+        public SqlToolCompleteTests(DatabaseFixture fixture)
+        {
+            _fixture = fixture;
+            
+            // --- DI 設置 ---
+            var services = new ServiceCollection();
+            services.AddSqlTool(_fixture.ConnectionString);
+            _serviceProvider = services.BuildServiceProvider();
+
+            // --- Ad-hoc 測試準備 ---
+            // 每個測試方法執行前，產生一個隨機 Table 名稱
+            _tempTableName = $"TestTable_{Guid.NewGuid().ToString("N")}";
+            CreateTempTable();
+        }
+
+        // 每個測試結束後清理動態 Table
+        public void Dispose()
+        {
+            try
+            {
+                using ISqlTool tool = GetSqlTool();
+                tool.ExecuteNonQuery($"DROP TABLE IF EXISTS {_tempTableName}");
+            }
+            catch { /* 忽略清理錯誤 */ }
+        }
+
+        private void CreateTempTable()
+        {
+            using var tool = GetSqlTool();
+            string sql = $@"CREATE TABLE {_tempTableName} (
                             Id INT PRIMARY KEY IDENTITY, 
                             Name NVARCHAR(50), 
                             Age INT
@@ -26,205 +102,238 @@ namespace SeanTool.CSharp.Net8.Test
             tool.ExecuteNonQuery(sql);
         }
 
-        public void Dispose()
+        // 輔助方法：從 DI 取得 ISqlTool
+        private ISqlTool GetSqlTool()
         {
-            // 清理測試 Table
-            try
-            {
-                using var tool = new SqlTool(_ConnStr);
-                tool.ExecuteNonQuery($"DROP TABLE IF EXISTS {_TableName}");
-            }
-            catch { /* 忽略清理錯誤 */ }
+            var scope = _serviceProvider.CreateScope();
+            return scope.ServiceProvider.GetRequiredService<ISqlTool>();
         }
 
-        [Fact]
+        #region DI & Basic Logic Tests (Original + Yours)
+
+        [Fact(DisplayName = "DI: 應成功注入 ISqlTool")]
+        public void DependencyInjection_Should_Resolve_SqlTool()
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var sqlTool = scope.ServiceProvider.GetService<ISqlTool>();
+            Assert.NotNull(sqlTool);
+            Assert.IsType<SqlTool>(sqlTool);
+        }
+
+        [Fact(DisplayName = "Core: Select 1 應回傳 1")]
         public void ExecuteScalar_SelectOne_ReturnsOne()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-
-            // Act
+            using var tool = GetSqlTool();
             var result = tool.ExecuteScalar("SELECT 1");
-
-            // Assert
             Assert.Equal(1, result);
         }
 
-        [Fact]
+        [Fact(DisplayName = "Core: 匿名物件參數 Insert")]
         public void ExecuteNonQuery_InsertWithAnonymousObject_InsertsData()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
+            using var tool = GetSqlTool();
             var param = new { Name = "Sean", Age = 30 };
-            string sql = $"INSERT INTO {_TableName} (Name, Age) VALUES (@Name, @Age)";
+            string sql = $"INSERT INTO {_tempTableName} (Name, Age) VALUES (@Name, @Age)";
 
-            // Act
             int affected = tool.ExecuteNonQuery(sql, param);
 
-            // Assert
             Assert.Equal(1, affected);
-
-            var count = tool.ExecuteScalar($"SELECT COUNT(*) FROM {_TableName}");
+            var count = tool.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
             Assert.Equal(1, count);
         }
 
-        [Fact]
+        [Fact(DisplayName = "Core: Dictionary 參數 Insert")]
         public void ExecuteNonQuery_InsertWithDictionary_InsertsData()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
+            using var tool = GetSqlTool();
             var param = new Dictionary<string, object>
             {
                 { "@Name", "TestUser" },
                 { "@Age", 99 }
             };
-            string sql = $"INSERT INTO {_TableName} (Name, Age) VALUES (@Name, @Age)";
+            string sql = $"INSERT INTO {_tempTableName} (Name, Age) VALUES (@Name, @Age)";
 
-            // Act
             tool.ExecuteNonQuery(sql, param);
 
-            // Assert
-            var name = tool.ExecuteScalar($"SELECT Name FROM {_TableName}");
+            var name = tool.ExecuteScalar($"SELECT Name FROM {_tempTableName}");
             Assert.Equal("TestUser", name);
         }
 
-        [Fact]
+        [Fact(DisplayName = "Core: GetDataTable 應回傳正確資料")]
         public void GetDataTable_ReturnsCorrectData()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-            tool.ExecuteNonQuery($"INSERT INTO {_TableName} (Name) VALUES ('Row1'), ('Row2')");
+            using var tool = GetSqlTool();
+            tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('Row1'), ('Row2')");
 
-            // Act
-            DataTable dt = tool.GetDataTable($"SELECT * FROM {_TableName}");
+            DataTable dt = tool.GetDataTable($"SELECT * FROM {_tempTableName}");
 
-            // Assert
             Assert.Equal(2, dt.Rows.Count);
             Assert.Equal("Row1", dt.Rows[0]["Name"]);
         }
 
-        #region Transaction Tests (Manual)
+        #endregion
 
-        [Fact]
+        #region Transaction Tests (Manual & Conflicts)
+
+        [Fact(DisplayName = "Trans: Rollback 資料不應存入")]
         public void BeginTransaction_Rollback_DataNotSaved()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-
-            // Act
+            using var tool = GetSqlTool();
             tool.BeginTransaction();
-            tool.ExecuteNonQuery($"INSERT INTO {_TableName} (Name) VALUES ('RollbackTarget')");
+            tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('RollbackTarget')");
             tool.Rollback();
 
-            // Assert
-            var count = tool.ExecuteScalar($"SELECT COUNT(*) FROM {_TableName}");
-            Assert.Equal(0, count); // 資料應該被清空
+            var count = tool.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
+            Assert.Equal(0, count);
         }
 
-        [Fact]
+        [Fact(DisplayName = "Trans: Commit 資料應存入")]
         public void BeginTransaction_Commit_DataSaved()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-
-            // Act
+            using var tool = GetSqlTool();
             tool.BeginTransaction();
-            tool.ExecuteNonQuery($"INSERT INTO {_TableName} (Name) VALUES ('CommitTarget')");
+            tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('CommitTarget')");
             tool.Commit();
 
-            // Assert
-            var count = tool.ExecuteScalar($"SELECT COUNT(*) FROM {_TableName}");
+            var count = tool.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
             Assert.Equal(1, count);
+        }
+
+        [Fact(DisplayName = "Conflict: 已開啟連線時不可開 Scope")]
+        public void StartTransactionScope_WhenConnectionAlreadyOpen_ThrowsException()
+        {
+            using var tool = GetSqlTool();
+            tool.OpenSharedConnection(); 
+
+            Action act = () => tool.StartTransactionScope();
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
+            Assert.Contains("連線已開啟", exception.Message);
+        }
+
+        [Fact(DisplayName = "Conflict: 已有手動交易時不可開 Scope")]
+        public void StartTransactionScope_WhenManualTransactionExists_ThrowsException()
+        {
+            using var tool = GetSqlTool();
+            tool.BeginTransaction();
+
+            Action act = () => tool.StartTransactionScope();
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
+            Assert.Contains("已在手動 SqlTransaction 模式中", exception.Message);
+        }
+
+        [Fact(DisplayName = "Conflict: 已有 Scope 時不可開手動交易")]
+        public void BeginTransaction_WhenScopeExists_ThrowsException()
+        {
+            using var tool = GetSqlTool();
+            tool.StartTransactionScope();
+
+            Action act = () => tool.BeginTransaction();
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
+            Assert.Contains("已在 TransactionScope 模式中", exception.Message);
         }
 
         #endregion
 
         #region TransactionScope Tests
 
-        [Fact]
+        [Fact(DisplayName = "Scope: Complete 資料應存入")]
         public void TransactionScope_Complete_DataSaved()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-
-            // Act
+            using var tool = GetSqlTool();
+            
             tool.StartTransactionScope();
-            tool.ExecuteNonQuery($"INSERT INTO {_TableName} (Name) VALUES ('ScopeCommit')");
+            tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('ScopeCommit')");
             tool.CommitScope();
-            // 注意：Scope 需要在 Dispose 時才會真正結束，這裡模擬 using 結束
+            // 釋放 Scope
             tool.Dispose();
 
-            // Assert (使用新的連線檢查)
-            using var checker = new SqlTool(_ConnStr);
-            var count = checker.ExecuteScalar($"SELECT COUNT(*) FROM {_TableName}");
+            // 驗證
+            using var checker = GetSqlTool();
+            var count = checker.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
             Assert.Equal(1, count);
         }
 
-        [Fact]
+        [Fact(DisplayName = "Scope: 未 Complete 資料應回滾")]
         public void TransactionScope_NoComplete_DataRolledBack()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
+            using var tool = GetSqlTool();
 
-            // Act
             tool.StartTransactionScope();
-            tool.ExecuteNonQuery($"INSERT INTO {_TableName} (Name) VALUES ('ScopeRollback')");
-            // 故意不呼叫 CommitScope()
+            tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('ScopeRollback')");
+            // 故意不呼叫 CommitScope
             tool.Dispose();
 
-            // Assert
-            using var checker = new SqlTool(_ConnStr);
-            var count = checker.ExecuteScalar($"SELECT COUNT(*) FROM {_TableName}");
+            // 驗證
+            using var checker = GetSqlTool();
+            var count = checker.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
             Assert.Equal(0, count);
         }
 
         #endregion
 
-        #region Edge Cases / Validation Tests
+        #region Model & Bulk Tests (Using TestUsers Table)
 
-        [Fact]
-        public void StartTransactionScope_WhenConnectionAlreadyOpen_ThrowsException()
+        [Fact(DisplayName = "Model: SingleInsert 與 ExecuteScalar")]
+        public void Insert_Should_Add_Record()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-            tool.OpenSharedConnection(); // 先開連線
+            using var tool = GetSqlTool();
+            var user = new TestUser { UserId = 101, UserName = "Sean", CreatedAt = DateTime.Now };
 
-            // Act
-            Action act = () => tool.StartTransactionScope();
+            int rowsAffected = tool.SingleInsert(user);
 
-
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
-            Assert.Contains("連線已開啟", exception.Message);
+            Assert.Equal(1, rowsAffected);
+            object? result = tool.ExecuteScalar("SELECT UserName FROM TestUsers WHERE UserId = @UserId", new { UserId = 101 });
+            Assert.Equal("Sean", result?.ToString());
         }
 
-        [Fact]
-        public void StartTransactionScope_WhenManualTransactionExists_ThrowsException()
+        [Fact(DisplayName = "Model: BulkInsert")]
+        public void BulkInsert_Should_Insert_Multiple_Rows()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
+            using var tool = GetSqlTool();
+            var users = new List<TestUser>();
+            for (int i = 0; i < 50; i++)
+            {
+                users.Add(new TestUser { UserId = 1000 + i, UserName = $"Bulk_{i}", CreatedAt = DateTime.Now });
+            }
+
+            // Bulk 需要 OpenSharedConnection
+            tool.OpenSharedConnection();
             tool.BeginTransaction();
+            tool.BulkInsert(users);
+            tool.Commit();
 
-            // Act
-            Action act = () => tool.StartTransactionScope();
-
-            // Assert
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
-            Assert.Contains("已在手動 SqlTransaction 模式中", exception.Message);
+            var count = tool.ExecuteScalar("SELECT COUNT(*) FROM TestUsers WHERE UserId >= 1000");
+            Assert.Equal(50, Convert.ToInt32(count));
         }
 
-        [Fact]
-        public void BeginTransaction_WhenScopeExists_ThrowsException()
+        [Fact(DisplayName = "Model: SingleUpdate")]
+        public void Update_Should_Modify_Record()
         {
-            // Arrange
-            using var tool = new SqlTool(_ConnStr);
-            tool.StartTransactionScope();
+            using var tool = GetSqlTool();
+            var user = new TestUser { UserId = 201, UserName = "Original", CreatedAt = DateTime.Now };
+            tool.SingleInsert(user);
 
-            // Act
-            Action act = () => tool.BeginTransaction();
+            user.UserName = "Updated";
+            tool.SingleUpdate(user);
 
-            // Assert
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
-            Assert.Contains("已在 TransactionScope 模式中", exception.Message);
+            var dt = tool.GetDataTable("SELECT UserName FROM TestUsers WHERE UserId = 201");
+            Assert.Equal("Updated", dt.Rows[0]["UserName"]);
+        }
+
+        [Fact(DisplayName = "Model: Delete")]
+        public void Delete_Should_Remove_Record()
+        {
+            using var tool = GetSqlTool();
+            var user = new TestUser { UserId = 301, UserName = "DeleteMe", CreatedAt = DateTime.Now };
+            tool.SingleInsert(user);
+
+            tool.Delete(user);
+
+            var count = tool.ExecuteScalar("SELECT COUNT(*) FROM TestUsers WHERE UserId = 301");
+            Assert.Equal(0, Convert.ToInt32(count));
         }
 
         #endregion
