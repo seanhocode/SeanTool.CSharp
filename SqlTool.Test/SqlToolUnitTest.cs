@@ -1,10 +1,10 @@
-using Microsoft.Data.SqlClient;
+ï»¿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 
 namespace SeanTool.CSharp.Net8.Test
 {
-    // 1. ©w¸q´ú¸Õ¸ê®Æ¼Ò«¬
+    // 1. å®šç¾©æ¸¬è©¦è³‡æ–™æ¨¡å‹
     [TableName("TestUsers")]
     public class TestUser
     {
@@ -17,16 +17,16 @@ namespace SeanTool.CSharp.Net8.Test
         public DateTime CreatedAt { get; set; }
     }
 
-    // 2. ©w¸q Fixture (­t³d¸ê®Æ®w³s½u¦r¦ê»P°òÂ¦Àô¹Ò)
+    // 2. å®šç¾© Fixture (è² è²¬è³‡æ–™åº«é€£ç·šå­—ä¸²èˆ‡åŸºç¤ç’°å¢ƒ)
     public class DatabaseFixture : IDisposable
     {
-        // ³s½u¦r¦ê (½Ğ®Ú¾Ú¹ê»ÚÀô¹Ò½Õ¾ã)
-        // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;User Id=§Aªº±b¸¹;Password=§Aªº±K½X;TrustServerCertificate=True;"
+        // é€£ç·šå­—ä¸² (è«‹æ ¹æ“šå¯¦éš›ç’°å¢ƒèª¿æ•´)
+        // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;User Id=ä½ çš„å¸³è™Ÿ;Password=ä½ çš„å¯†ç¢¼;TrustServerCertificate=True;"
         public string ConnectionString { get; } = @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
         public DatabaseFixture()
         {
-            // ªì©l¤Æ¥D­n´ú¸Õªí (µ¹ Model ´ú¸Õ¥Î)
+            // åˆå§‹åŒ–ä¸»è¦æ¸¬è©¦è¡¨ (çµ¦ Model æ¸¬è©¦ç”¨)
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
@@ -46,7 +46,7 @@ namespace SeanTool.CSharp.Net8.Test
 
         public void Dispose()
         {
-            // ²M²z¥D­n´ú¸Õªí
+            // æ¸…ç†ä¸»è¦æ¸¬è©¦è¡¨
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
@@ -56,31 +56,31 @@ namespace SeanTool.CSharp.Net8.Test
         }
     }
 
-    // 3. §¹¾ãªº´ú¸ÕÃş§O
+    // 3. å®Œæ•´çš„æ¸¬è©¦é¡åˆ¥
     public class SqlToolCompleteTests : IClassFixture<DatabaseFixture>, IDisposable
     {
         private readonly DatabaseFixture _fixture;
         private readonly IServiceProvider _serviceProvider;
         
-        // ±Mªù¥Î©ó Ad-hoc ´ú¸Õªº°ÊºA Table ¦WºÙ
+        // å°ˆé–€ç”¨æ–¼ Ad-hoc æ¸¬è©¦çš„å‹•æ…‹ Table åç¨±
         private readonly string _tempTableName;
 
         public SqlToolCompleteTests(DatabaseFixture fixture)
         {
             _fixture = fixture;
             
-            // --- DI ³]¸m ---
+            // --- DI è¨­ç½® ---
             var services = new ServiceCollection();
             services.AddSqlTool(_fixture.ConnectionString);
             _serviceProvider = services.BuildServiceProvider();
 
-            // --- Ad-hoc ´ú¸Õ·Ç³Æ ---
-            // ¨C­Ó´ú¸Õ¤èªk°õ¦æ«e¡A²£¥Í¤@­ÓÀH¾÷ Table ¦WºÙ
+            // --- Ad-hoc æ¸¬è©¦æº–å‚™ ---
+            // æ¯å€‹æ¸¬è©¦æ–¹æ³•åŸ·è¡Œå‰ï¼Œç”¢ç”Ÿä¸€å€‹éš¨æ©Ÿ Table åç¨±
             _tempTableName = $"TestTable_{Guid.NewGuid().ToString("N")}";
             CreateTempTable();
         }
 
-        // ¨C­Ó´ú¸Õµ²§ô«á²M²z°ÊºA Table
+        // æ¯å€‹æ¸¬è©¦çµæŸå¾Œæ¸…ç†å‹•æ…‹ Table
         public void Dispose()
         {
             try
@@ -88,7 +88,7 @@ namespace SeanTool.CSharp.Net8.Test
                 using ISqlTool tool = GetSqlTool();
                 tool.ExecuteNonQuery($"DROP TABLE IF EXISTS {_tempTableName}");
             }
-            catch { /* ©¿²¤²M²z¿ù»~ */ }
+            catch { /* å¿½ç•¥æ¸…ç†éŒ¯èª¤ */ }
         }
 
         private void CreateTempTable()
@@ -102,7 +102,7 @@ namespace SeanTool.CSharp.Net8.Test
             tool.ExecuteNonQuery(sql);
         }
 
-        // »²§U¤èªk¡G±q DI ¨ú±o ISqlTool
+        // è¼”åŠ©æ–¹æ³•ï¼šå¾ DI å–å¾— ISqlTool
         private ISqlTool GetSqlTool()
         {
             var scope = _serviceProvider.CreateScope();
@@ -111,7 +111,7 @@ namespace SeanTool.CSharp.Net8.Test
 
         #region DI & Basic Logic Tests (Original + Yours)
 
-        [Fact(DisplayName = "DI: À³¦¨¥\ª`¤J ISqlTool")]
+        [Fact(DisplayName = "DI: æ‡‰æˆåŠŸæ³¨å…¥ ISqlTool")]
         public void DependencyInjection_Should_Resolve_SqlTool()
         {
             using var scope = _serviceProvider.CreateScope();
@@ -120,7 +120,7 @@ namespace SeanTool.CSharp.Net8.Test
             Assert.IsType<SqlTool>(sqlTool);
         }
 
-        [Fact(DisplayName = "Core: Select 1 À³¦^¶Ç 1")]
+        [Fact(DisplayName = "Core: Select 1 æ‡‰å›å‚³ 1")]
         public void ExecuteScalar_SelectOne_ReturnsOne()
         {
             using var tool = GetSqlTool();
@@ -128,7 +128,7 @@ namespace SeanTool.CSharp.Net8.Test
             Assert.Equal(1, result);
         }
 
-        [Fact(DisplayName = "Core: °Î¦Wª«¥ó°Ñ¼Æ Insert")]
+        [Fact(DisplayName = "Core: åŒ¿åç‰©ä»¶åƒæ•¸ Insert")]
         public void ExecuteNonQuery_InsertWithAnonymousObject_InsertsData()
         {
             using var tool = GetSqlTool();
@@ -142,7 +142,7 @@ namespace SeanTool.CSharp.Net8.Test
             Assert.Equal(1, count);
         }
 
-        [Fact(DisplayName = "Core: Dictionary °Ñ¼Æ Insert")]
+        [Fact(DisplayName = "Core: Dictionary åƒæ•¸ Insert")]
         public void ExecuteNonQuery_InsertWithDictionary_InsertsData()
         {
             using var tool = GetSqlTool();
@@ -159,7 +159,7 @@ namespace SeanTool.CSharp.Net8.Test
             Assert.Equal("TestUser", name);
         }
 
-        [Fact(DisplayName = "Core: GetDataTable À³¦^¶Ç¥¿½T¸ê®Æ")]
+        [Fact(DisplayName = "Core: GetDataTable æ‡‰å›å‚³æ­£ç¢ºè³‡æ–™")]
         public void GetDataTable_ReturnsCorrectData()
         {
             using var tool = GetSqlTool();
@@ -175,7 +175,7 @@ namespace SeanTool.CSharp.Net8.Test
 
         #region Transaction Tests (Manual & Conflicts)
 
-        [Fact(DisplayName = "Trans: Rollback ¸ê®Æ¤£À³¦s¤J")]
+        [Fact(DisplayName = "Trans: Rollback è³‡æ–™ä¸æ‡‰å­˜å…¥")]
         public void BeginTransaction_Rollback_DataNotSaved()
         {
             using var tool = GetSqlTool();
@@ -187,7 +187,7 @@ namespace SeanTool.CSharp.Net8.Test
             Assert.Equal(0, count);
         }
 
-        [Fact(DisplayName = "Trans: Commit ¸ê®ÆÀ³¦s¤J")]
+        [Fact(DisplayName = "Trans: Commit è³‡æ–™æ‡‰å­˜å…¥")]
         public void BeginTransaction_Commit_DataSaved()
         {
             using var tool = GetSqlTool();
@@ -199,7 +199,7 @@ namespace SeanTool.CSharp.Net8.Test
             Assert.Equal(1, count);
         }
 
-        [Fact(DisplayName = "Conflict: ¤w¶}±Ò³s½u®É¤£¥i¶} Scope")]
+        [Fact(DisplayName = "Conflict: å·²é–‹å•Ÿé€£ç·šæ™‚ä¸å¯é–‹ Scope")]
         public void StartTransactionScope_WhenConnectionAlreadyOpen_ThrowsException()
         {
             using var tool = GetSqlTool();
@@ -208,10 +208,10 @@ namespace SeanTool.CSharp.Net8.Test
             Action act = () => tool.StartTransactionScope();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
-            Assert.Contains("³s½u¤w¶}±Ò", exception.Message);
+            Assert.Contains("é€£ç·šå·²é–‹å•Ÿ", exception.Message);
         }
 
-        [Fact(DisplayName = "Conflict: ¤w¦³¤â°Ê¥æ©ö®É¤£¥i¶} Scope")]
+        [Fact(DisplayName = "Conflict: å·²æœ‰æ‰‹å‹•äº¤æ˜“æ™‚ä¸å¯é–‹ Scope")]
         public void StartTransactionScope_WhenManualTransactionExists_ThrowsException()
         {
             using var tool = GetSqlTool();
@@ -220,10 +220,10 @@ namespace SeanTool.CSharp.Net8.Test
             Action act = () => tool.StartTransactionScope();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
-            Assert.Contains("¤w¦b¤â°Ê SqlTransaction ¼Ò¦¡¤¤", exception.Message);
+            Assert.Contains("å·²åœ¨æ‰‹å‹• SqlTransaction æ¨¡å¼ä¸­", exception.Message);
         }
 
-        [Fact(DisplayName = "Conflict: ¤w¦³ Scope ®É¤£¥i¶}¤â°Ê¥æ©ö")]
+        [Fact(DisplayName = "Conflict: å·²æœ‰ Scope æ™‚ä¸å¯é–‹æ‰‹å‹•äº¤æ˜“")]
         public void BeginTransaction_WhenScopeExists_ThrowsException()
         {
             using var tool = GetSqlTool();
@@ -232,14 +232,14 @@ namespace SeanTool.CSharp.Net8.Test
             Action act = () => tool.BeginTransaction();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(act);
-            Assert.Contains("¤w¦b TransactionScope ¼Ò¦¡¤¤", exception.Message);
+            Assert.Contains("å·²åœ¨ TransactionScope æ¨¡å¼ä¸­", exception.Message);
         }
 
         #endregion
 
         #region TransactionScope Tests
 
-        [Fact(DisplayName = "Scope: Complete ¸ê®ÆÀ³¦s¤J")]
+        [Fact(DisplayName = "Scope: Complete è³‡æ–™æ‡‰å­˜å…¥")]
         public void TransactionScope_Complete_DataSaved()
         {
             using var tool = GetSqlTool();
@@ -247,26 +247,26 @@ namespace SeanTool.CSharp.Net8.Test
             tool.StartTransactionScope();
             tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('ScopeCommit')");
             tool.CommitScope();
-            // ÄÀ©ñ Scope
+            // é‡‹æ”¾ Scope
             tool.Dispose();
 
-            // ÅçÃÒ
+            // é©—è­‰
             using var checker = GetSqlTool();
             var count = checker.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
             Assert.Equal(1, count);
         }
 
-        [Fact(DisplayName = "Scope: ¥¼ Complete ¸ê®ÆÀ³¦^ºu")]
+        [Fact(DisplayName = "Scope: æœª Complete è³‡æ–™æ‡‰å›æ»¾")]
         public void TransactionScope_NoComplete_DataRolledBack()
         {
             using var tool = GetSqlTool();
 
             tool.StartTransactionScope();
             tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('ScopeRollback')");
-            // ¬G·N¤£©I¥s CommitScope
+            // æ•…æ„ä¸å‘¼å« CommitScope
             tool.Dispose();
 
-            // ÅçÃÒ
+            // é©—è­‰
             using var checker = GetSqlTool();
             var count = checker.ExecuteScalar($"SELECT COUNT(*) FROM {_tempTableName}");
             Assert.Equal(0, count);
@@ -276,7 +276,7 @@ namespace SeanTool.CSharp.Net8.Test
 
         #region Model & Bulk Tests (Using TestUsers Table)
 
-        [Fact(DisplayName = "Model: SingleInsert »P ExecuteScalar")]
+        [Fact(DisplayName = "Model: SingleInsert èˆ‡ ExecuteScalar")]
         public void Insert_Should_Add_Record()
         {
             using var tool = GetSqlTool();
@@ -299,7 +299,7 @@ namespace SeanTool.CSharp.Net8.Test
                 users.Add(new TestUser { UserId = 1000 + i, UserName = $"Bulk_{i}", CreatedAt = DateTime.Now });
             }
 
-            // Bulk »İ­n OpenSharedConnection
+            // Bulk éœ€è¦ OpenSharedConnection
             tool.OpenSharedConnection();
             tool.BeginTransaction();
             tool.BulkInsert(users);
