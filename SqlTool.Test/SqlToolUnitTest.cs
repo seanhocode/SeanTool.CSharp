@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 
+// 強制關閉平行測試，讓測試一個接一個跑
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 namespace SeanTool.CSharp.Net8.Test
 {
     // 1. 定義測試資料模型
@@ -17,41 +19,57 @@ namespace SeanTool.CSharp.Net8.Test
         public DateTime CreatedAt { get; set; }
     }
 
-    // 2. 定義 Fixture (負責資料庫連線字串與基礎環境)
     public class DatabaseFixture : IDisposable
     {
         // 連線字串 (請根據實際環境調整)
-        // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;User Id=你的帳號;Password=你的密碼;TrustServerCertificate=True;"
-        public string ConnectionString { get; } = @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;Trusted_Connection=True;TrustServerCertificate=True;";
+        // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;User Id=你的帳號;Password=你的密碼;TrustServerCertificate=True;";
+        // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;Trusted_Connection=True;TrustServerCertificate=True;";
+        public string ConnectionString { get; } = @"Server=SEAN-HO-NB\MSSQLSERVER_2022;Database=master;User Id=sa;Password=1234;TrustServerCertificate=True;";
 
         public DatabaseFixture()
         {
-            // 初始化主要測試表 (給 Model 測試用)
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
+                // --- 修改這裡 ---
+                // 使用更嚴謹的 SQL：先刪除，再檢查是否真的不存在才建立
                 string sql = @"
-                    IF OBJECT_ID('TestUsers', 'U') IS NOT NULL DROP TABLE TestUsers;
-                    CREATE TABLE TestUsers (
-                        Id INT IDENTITY(1,1),
-                        UserId INT NOT NULL,
-                        UserName NVARCHAR(50),
-                        Age INT,
-                        CreatedAt DATETIME2,
-                        CONSTRAINT PK_TestUsers PRIMARY KEY (UserId)
-                    );";
+                    -- 1. 如果存在則刪除
+                    IF OBJECT_ID('TestUsers', 'U') IS NOT NULL 
+                        DROP TABLE TestUsers;
+
+                    -- 2. 只有在確認不存在時才建立 (防止多執行緒同時建立導致錯誤)
+                    IF OBJECT_ID('TestUsers', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE TestUsers (
+                            Id INT IDENTITY(1,1),
+                            UserId INT NOT NULL,
+                            UserName NVARCHAR(50),
+                            Age INT,
+                            CreatedAt DATETIME2,
+                            CONSTRAINT PK_TestUsers PRIMARY KEY (UserId)
+                        );
+                    END";
+                // ----------------
+
                 using (var cmd = new SqlCommand(sql, conn)) cmd.ExecuteNonQuery();
             }
         }
 
         public void Dispose()
         {
-            // 清理主要測試表
-            using (var conn = new SqlConnection(ConnectionString))
+            try
             {
-                conn.Open();
-                string sql = "IF OBJECT_ID('TestUsers', 'U') IS NOT NULL DROP TABLE TestUsers;";
-                using (var cmd = new SqlCommand(sql, conn)) cmd.ExecuteNonQuery();
+                using (var conn = new SqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                    string sql = "IF OBJECT_ID('TestUsers', 'U') IS NOT NULL DROP TABLE TestUsers;";
+                    using (var cmd = new SqlCommand(sql, conn)) cmd.ExecuteNonQuery();
+                }
+            }
+            catch
+            {
+                // 忽略 Dispose 時的錯誤，避免掩蓋測試本身的失敗
             }
         }
     }
@@ -165,7 +183,7 @@ namespace SeanTool.CSharp.Net8.Test
             using var tool = GetSqlTool();
             tool.ExecuteNonQuery($"INSERT INTO {_tempTableName} (Name) VALUES ('Row1'), ('Row2')");
 
-            DataTable dt = tool.GetDataTable($"SELECT * FROM {_tempTableName}");
+            DataTable dt = tool.ExecuteSQL($"SELECT * FROM {_tempTableName}");
 
             Assert.Equal(2, dt.Rows.Count);
             Assert.Equal("Row1", dt.Rows[0]["Name"]);
@@ -275,6 +293,85 @@ namespace SeanTool.CSharp.Net8.Test
         #endregion
 
         #region Model & Bulk Tests (Using TestUsers Table)
+        [Fact(DisplayName = "Core: ExecuteSQL 應正確映射資料至 TestUser 模型")]
+        public void ExecuteSQL_Should_Map_To_Model_List()
+        {
+            using var tool = GetSqlTool();
+
+            // Arrange: 準備測試資料 (使用 TestUsers 表)
+            // 這裡刻意插入兩筆資料
+            tool.ExecuteNonQuery($"DELETE FROM TestUsers WHERE UserId IN (801, 802)");
+
+            var sqlInsert = @"
+                INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) 
+                VALUES (801, 'MapperA', 25, '2023-01-01 10:00:00'),
+                       (802, 'MapperB', 35, '2023-02-01 11:00:00')";
+            tool.ExecuteNonQuery(sqlInsert);
+
+            // Act: 執行泛型查詢
+            IList<TestUser> result = tool.ExecuteSQL<TestUser>("SELECT * FROM TestUsers WHERE UserId IN (801, 802) ORDER BY UserId");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+
+            // 驗證第一筆
+            var user1 = result[0];
+            Assert.Equal(801, user1.UserId);
+            Assert.Equal("MapperA", user1.UserName);
+            Assert.Equal(25, user1.Age);
+            Assert.Equal(new DateTime(2023, 1, 1, 10, 0, 0), user1.CreatedAt);
+            // Id 是 Identity 自動生成的，只要大於 0 即可
+            Assert.True(user1.Id > 0);
+
+            // 驗證第二筆
+            var user2 = result[1];
+            Assert.Equal(802, user2.UserId);
+            Assert.Equal("MapperB", user2.UserName);
+        }
+
+        [Fact(DisplayName = "Core: ExecuteSQL 遇到 DBNull 應保留 Model 預設值")]
+        public void ExecuteSQL_Should_Handle_Nulls_By_Preserving_Defaults()
+        {
+            using var tool = GetSqlTool();
+
+            // Arrange: 插入含有 NULL 的資料
+            // UserName 與 Age 在 Table Schema 中允許 NULL
+            tool.ExecuteNonQuery($"DELETE FROM TestUsers WHERE UserId = 803");
+
+            var sqlInsert = @"
+                INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) 
+                VALUES (803, NULL, NULL, '2023-03-01')";
+            tool.ExecuteNonQuery(sqlInsert);
+
+            // Act
+            IList<TestUser> result = tool.ExecuteSQL<TestUser>("SELECT * FROM TestUsers WHERE UserId = 803");
+
+            // Assert
+            Assert.Single(result);
+            var user = result[0];
+
+            Assert.Equal(803, user.UserId);
+
+            // 驗證重點：
+            // 因為 DB 值是 NULL，轉換邏輯通常會跳過屬性賦值。
+            // 所以屬性應維持 Model 定義時的初始值。
+            Assert.Equal(string.Empty, user.UserName); // Model 初始化為 string.Empty
+            Assert.Equal(0, user.Age);                 // int 預設為 0
+        }
+
+        [Fact(DisplayName = "Core: ExecuteSQL 查無資料應回傳空清單")]
+        public void ExecuteSQL_Should_Return_Empty_List_When_No_Data()
+        {
+            using var tool = GetSqlTool();
+
+            // Act: 查詢一個不存在的條件
+            IList<TestUser> result = tool.ExecuteSQL<TestUser>("SELECT * FROM TestUsers WHERE UserId = -9999");
+
+            // Assert
+            Assert.NotNull(result); // 不應回傳 null
+            Assert.Empty(result);   // Count 應為 0
+        }
 
         [Fact(DisplayName = "Model: SingleInsert 與 ExecuteScalar")]
         public void Insert_Should_Add_Record()
@@ -319,7 +416,7 @@ namespace SeanTool.CSharp.Net8.Test
             user.UserName = "Updated";
             tool.SingleUpdate(user);
 
-            var dt = tool.GetDataTable("SELECT UserName FROM TestUsers WHERE UserId = 201");
+            var dt = tool.ExecuteSQL("SELECT UserName FROM TestUsers WHERE UserId = 201");
             Assert.Equal("Updated", dt.Rows[0]["UserName"]);
         }
 
