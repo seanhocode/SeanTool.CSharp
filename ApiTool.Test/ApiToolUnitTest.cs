@@ -51,7 +51,7 @@ namespace SeanTool.CSharp.Net8.Test
 
     public class ApiToolUnitTest_Online
     {
-        private readonly ApiTool _apiTool;
+        private readonly ApiTool _ApiTool;
 
         public class PostPayloadTest
         {
@@ -71,7 +71,7 @@ namespace SeanTool.CSharp.Net8.Test
             IHttpClientFactory realFactory = new RealHttpClientFactory();
 
             // 2. 注入 Factory 建立 ApiTool 實體
-            _apiTool = new ApiTool(realFactory);
+            _ApiTool = new ApiTool(realFactory);
         }
 
         [Fact(DisplayName = "線上測試 - GetAsync 應能取得真實資料")]
@@ -82,7 +82,7 @@ namespace SeanTool.CSharp.Net8.Test
 
             // Act
             // 使用實體方法 _apiTool
-            var result = await _apiTool.GetAsync<JsonElement>(url);
+            var result = await _ApiTool.GetAsync<JsonElement>(url);
 
             // Assert
             // 使用 FluentAssertions 風格 (或保持 Assert.Equal 亦可)
@@ -104,7 +104,7 @@ namespace SeanTool.CSharp.Net8.Test
 
             // Act
             // 預期回傳型別為 JsonElement
-            var result = await _apiTool.PostAsync<PostPayloadTest, JsonElement>(url, payload);
+            var result = await _ApiTool.PostAsync<PostPayloadTest, JsonElement>(url, payload);
 
             // Assert
             // JsonPlaceholder 對於成功的 POST 請求，通常會回傳固定的 ID 101
