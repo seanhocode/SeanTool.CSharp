@@ -72,10 +72,27 @@ namespace SeanTool.CSharp.Net8.Forms.Test
             editForm.AddCustomizeBtn(addAgeBtn);
             editForm.AddCustomizeBtn(minusdAgeBtn);
 
-            if (editForm.ShowDialog() == DialogResult.OK){
+            if (editForm.ShowDialog() == DialogResult.OK)
+            {
                 editForm.ViewMode = ModelEditorViewMode.Viewer;
                 editForm.ShowDialog();
             }
+        }
+
+        private void GridTestBtn_Click(object sender, EventArgs e)
+        {
+            List<Person> people = new List<Person>()
+            {
+                new Person(){ Name = "Person1" },
+                new Person(){ Name = "Person2" },
+                new Person(){ Name = "Person3" },
+                new Person(){ Name = "Person4" },
+                new Person(){ Name = "Person5" }
+            };
+
+            Grid<Person> gridForm = new Grid<Person>(people);
+            gridForm.Left = 400;
+            this.Controls.Add(gridForm);
         }
     }
 }
