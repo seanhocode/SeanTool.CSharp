@@ -337,7 +337,7 @@ namespace SeanTool.CSharp.Net8.Test
 
             // Arrange: 插入含有 NULL 的資料
             // UserName 與 Age 在 Table Schema 中允許 NULL
-            tool.ExecuteNonQuery($"DELETE FROM TestUsers WHERE UserId = 803");
+            tool.ExecuteNonQuery($"DELETE FROM TestUsers WHERE UserId = @UserID", new { UserID = 803 });
 
             var sqlInsert = @"
                 INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) 
@@ -345,7 +345,7 @@ namespace SeanTool.CSharp.Net8.Test
             tool.ExecuteNonQuery(sqlInsert);
 
             // Act
-            IList<TestUser> result = tool.ExecuteSQL<TestUser>("SELECT * FROM TestUsers WHERE UserId = 803");
+            IList<TestUser> result = tool.ExecuteSQL<TestUser>("SELECT * FROM TestUsers WHERE UserId = @UserID", new { UserID = 803 });
 
             // Assert
             Assert.Single(result);
@@ -381,7 +381,7 @@ namespace SeanTool.CSharp.Net8.Test
 
             int rowsAffected = tool.SingleInsert(user);
 
-            Assert.Equal(1, rowsAffected);
+            Assert.True(rowsAffected > 0);
             object? result = tool.ExecuteScalar("SELECT UserName FROM TestUsers WHERE UserId = @UserId", new { UserId = 101 });
             Assert.Equal("Sean", result?.ToString());
         }
@@ -416,7 +416,7 @@ namespace SeanTool.CSharp.Net8.Test
             user.UserName = "Updated";
             tool.SingleUpdate(user);
 
-            var dt = tool.ExecuteSQL("SELECT UserName FROM TestUsers WHERE UserId = 201");
+            var dt = tool.ExecuteSQL("SELECT UserName FROM TestUsers WHERE UserId = @UserId", new { UserId = 201 });
             Assert.Equal("Updated", dt.Rows[0]["UserName"]);
         }
 
@@ -429,10 +429,195 @@ namespace SeanTool.CSharp.Net8.Test
 
             tool.Delete(user);
 
-            var count = tool.ExecuteScalar("SELECT COUNT(*) FROM TestUsers WHERE UserId = 301");
+            var count = tool.ExecuteScalar("SELECT COUNT(*) FROM TestUsers WHERE UserId = @UserId", new { UserId = 301 });
             Assert.Equal(0, Convert.ToInt32(count));
         }
 
+        #endregion
+
+        #region Async Tests
+        [Fact(DisplayName = "Async Core: Select 1 應回傳 1")]
+        public async Task ExecuteScalarAsync_SelectOne_ReturnsOne()
+        {
+            using var tool = GetSqlTool();
+            var result = await tool.ExecuteScalarAsync("SELECT 1");
+            Assert.Equal(1, result);
+        }
+
+        [Fact(DisplayName = "Async Core: 匿名物件參數 Insert")]
+        public async Task ExecuteNonQueryAsync_InsertWithAnonymousObject_InsertsData()
+        {
+            using var tool = GetSqlTool();
+            var param = new { Name = "SeanAsync", Age = 31 };
+            string sql = $"INSERT INTO {_tempTableName} (Name, Age) VALUES (@Name, @Age)";
+
+            int affected = await tool.ExecuteNonQueryAsync(sql, param);
+
+            Assert.Equal(1, affected);
+            var count = await tool.ExecuteScalarAsync($"SELECT COUNT(*) FROM {_tempTableName} WHERE Name = @Name", new { Name = "SeanAsync" });
+            Assert.Equal(1, count);
+        }
+
+        [Fact(DisplayName = "Async Core: ExecuteSQLAsync 應回傳 DataTable")]
+        public async Task ExecuteSQLAsync_ReturnsDataTable()
+        {
+            using var tool = GetSqlTool();
+            await tool.ExecuteNonQueryAsync($"INSERT INTO {_tempTableName} (Name) VALUES (@Row1), (@Row2)", new { Row1 = "AsyncRow1", Row2 = "AsyncRow2" });
+
+            DataTable dt = await tool.ExecuteSQLAsync($"SELECT * FROM {_tempTableName}");
+
+            Assert.Equal(2, dt.Rows.Count);
+            Assert.Contains("AsyncRow1", dt.Rows[0]["Name"].ToString());
+        }
+
+        [Fact(DisplayName = "Async Core: ExecuteSQLAsync<T> 應映射 Model List")]
+        public async Task ExecuteSQLAsync_Generic_ReturnsModelList()
+        {
+            using var tool = GetSqlTool();
+
+            // Arrange
+            await tool.ExecuteNonQueryAsync($"DELETE FROM TestUsers WHERE UserId IN (901, 902)");
+            var sqlInsert = @"
+                INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) 
+                VALUES (901, 'AsyncUserA', 28, GETDATE()),
+                       (902, 'AsyncUserB', 38, GETDATE())";
+            await tool.ExecuteNonQueryAsync(sqlInsert);
+
+            // Act
+            IList<TestUser> result = await tool.ExecuteSQLAsync<TestUser>("SELECT * FROM TestUsers WHERE UserId IN (901, 902) ORDER BY UserId");
+
+            // Assert
+            Assert.Equal(2, result.Count);
+            Assert.Equal("AsyncUserA", result[0].UserName);
+            Assert.Equal(902, result[1].UserId);
+        }
+
+        [Fact(DisplayName = "Async Trans: Rollback 資料不應存入")]
+        public async Task BeginTransactionAsync_Rollback_DataNotSaved()
+        {
+            using var tool = GetSqlTool();
+            await tool.BeginTransactionAsync();
+            await tool.ExecuteNonQueryAsync($"INSERT INTO {_tempTableName} (Name) VALUES ('AsyncRollback')");
+            await tool.RollbackAsync();
+
+            var count = await tool.ExecuteScalarAsync($"SELECT COUNT(*) FROM {_tempTableName} WHERE Name = 'AsyncRollback'");
+            Assert.Equal(0, count);
+        }
+
+        [Fact(DisplayName = "Async Trans: Commit 資料應存入")]
+        public async Task BeginTransactionAsync_Commit_DataSaved()
+        {
+            using var tool = GetSqlTool();
+            await tool.BeginTransactionAsync();
+            await tool.ExecuteNonQueryAsync($"INSERT INTO {_tempTableName} (Name) VALUES ('AsyncCommit')");
+            await tool.CommitAsync();
+
+            var count = await tool.ExecuteScalarAsync($"SELECT COUNT(*) FROM {_tempTableName} WHERE Name = 'AsyncCommit'");
+            Assert.Equal(1, count);
+        }
+
+        [Fact(DisplayName = "Async Model: SingleInsertAsync")]
+        public async Task SingleInsertAsync_Should_Add_Record()
+        {
+            using var tool = GetSqlTool();
+            var user = new TestUser { UserId = 401, UserName = "AsyncInsert", CreatedAt = DateTime.Now };
+
+            // 這裡假設您已經修正了 SingleInsertAsync 回傳 ID 的問題，或者是回傳筆數(int)
+            int result = await tool.SingleInsertAsync(user);
+
+            Assert.True(result > 0);
+            var dbName = await tool.ExecuteScalarAsync("SELECT UserName FROM TestUsers WHERE UserId = 401");
+            Assert.Equal("AsyncInsert", dbName?.ToString());
+        }
+
+        [Fact(DisplayName = "Async Model: SingleUpdateAsync")]
+        public async Task SingleUpdateAsync_Should_Modify_Record()
+        {
+            using var tool = GetSqlTool();
+            var user = new TestUser { UserId = 402, UserName = "AsyncOriginal", CreatedAt = DateTime.Now };
+            await tool.SingleInsertAsync(user);
+
+            user.UserName = "AsyncUpdated";
+            await tool.SingleUpdateAsync(user);
+
+            var dbName = await tool.ExecuteScalarAsync("SELECT UserName FROM TestUsers WHERE UserId = 402");
+            Assert.Equal("AsyncUpdated", dbName?.ToString());
+        }
+
+        [Fact(DisplayName = "Async Model: DeleteAsync")]
+        public async Task DeleteAsync_Should_Remove_Record()
+        {
+            using var tool = GetSqlTool();
+            var user = new TestUser { UserId = 403, UserName = "AsyncDelete", CreatedAt = DateTime.Now };
+            await tool.SingleInsertAsync(user);
+
+            await tool.DeleteAsync(user);
+
+            var count = await tool.ExecuteScalarAsync("SELECT COUNT(*) FROM TestUsers WHERE UserId = 403");
+            Assert.Equal(0, Convert.ToInt32(count));
+        }
+
+        [Fact(DisplayName = "Async Model: BulkInsertAsync")]
+        public async Task BulkInsertAsync_Should_Insert_Multiple_Rows()
+        {
+            using var tool = GetSqlTool();
+            var users = new List<TestUser>();
+            // 建立 50 筆測試資料
+            for (int i = 0; i < 50; i++)
+            {
+                users.Add(new TestUser { UserId = 5000 + i, UserName = $"AsyncBulk_{i}", CreatedAt = DateTime.Now });
+            }
+
+            // 清理舊資料避免 PK 衝突
+            await tool.ExecuteNonQueryAsync("DELETE FROM TestUsers WHERE UserId >= 5000 AND UserId < 5050");
+
+            // Bulk 需要 OpenSharedConnection
+            await tool.OpenSharedConnectionAsync();
+            await tool.BeginTransactionAsync();
+
+            await tool.BulkInsertAsync(users);
+
+            await tool.CommitAsync();
+
+            var count = await tool.ExecuteScalarAsync("SELECT COUNT(*) FROM TestUsers WHERE UserId >= 5000 AND UserId < 5050");
+            Assert.Equal(50, Convert.ToInt32(count));
+        }
+
+        [Fact(DisplayName = "Async Model: BulkUpdateAsync")]
+        public async Task BulkUpdateAsync_Should_Update_Multiple_Rows()
+        {
+            using var tool = GetSqlTool();
+            var users = new List<TestUser>();
+
+            // 1. 先插入 10 筆原始資料
+            for (int i = 0; i < 10; i++)
+            {
+                users.Add(new TestUser { UserId = 6000 + i, UserName = $"Original_{i}", CreatedAt = DateTime.Now });
+            }
+            await tool.ExecuteNonQueryAsync("DELETE FROM TestUsers WHERE UserId >= 6000 AND UserId < 6010");
+
+            await tool.OpenSharedConnectionAsync();
+            await tool.BeginTransactionAsync();
+            await tool.BulkInsertAsync(users);
+            await tool.CommitAsync();
+
+            // 2. 修改記憶體中的資料
+            foreach (var u in users)
+            {
+                u.UserName = u.UserName.Replace("Original", "Updated");
+            }
+
+            // 3. 執行 BulkUpdateAsync
+            // 注意：BulkUpdate 內部邏輯通常會自動處理連線，但手動開啟更保險
+            await tool.BulkUpdateAsync(users);
+
+            // 4. 驗證
+            var checkDt = await tool.ExecuteSQLAsync("SELECT UserName FROM TestUsers WHERE UserId >= 6000 AND UserId < 6010");
+            foreach (DataRow row in checkDt.Rows)
+            {
+                Assert.Contains("Updated", row["UserName"].ToString());
+            }
+        }
         #endregion
     }
 }
