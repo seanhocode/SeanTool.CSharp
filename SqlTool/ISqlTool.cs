@@ -220,5 +220,55 @@ namespace SeanTool.CSharp.Net8
         /// <returns></returns>
         /// <exception cref="InvalidOperationException">無法對應欄位</exception>
         Task<int> DeleteAsync<T>(T data, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 執行 Stored Procedure 並回傳 DataTable
+        /// </summary>
+        /// <param name="spName">Stored Procedure 名稱</param>
+        /// <param name="parameters">參數，可為 IDictionary、Object 或 IEnumerable&lt;SqlParameter&gt;</param>
+        /// <returns>查詢結果 DataTable</returns>
+        DataTable ExecuteStoredProcedure(string spName, object? parameters = null);
+
+        /// <summary>
+        /// 非同步執行 Stored Procedure 並回傳 DataTable
+        /// </summary>
+        /// <param name="spName">Stored Procedure 名稱</param>
+        /// <param name="parameters">參數，可為 IDictionary、Object 或 IEnumerable&lt;SqlParameter&gt;</param>
+        /// <returns>查詢結果 DataTable</returns>
+        Task<DataTable> ExecuteStoredProcedureAsync(string spName, object? parameters = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 執行 Stored Procedure 並回傳 Model List
+        /// </summary>
+        /// <typeparam name="T">Model 型別</typeparam>
+        /// <param name="spName">Stored Procedure 名稱</param>
+        /// <param name="parameters">參數，可為 IDictionary、Object 或 IEnumerable&lt;SqlParameter&gt;</param>
+        /// <returns>查詢結果 Model List</returns>
+        IList<T> ExecuteStoredProcedure<T>(string spName, object? parameters = null) where T : new();
+
+        /// <summary>
+        /// 非同步執行 Stored Procedure 並回傳 Model List
+        /// </summary>
+        /// <typeparam name="T">Model 型別</typeparam>
+        /// <param name="spName">Stored Procedure 名稱</param>
+        /// <param name="parameters">參數，可為 IDictionary、Object 或 IEnumerable&lt;SqlParameter&gt;</param>
+        /// <returns>查詢結果 Model List</returns>
+        Task<IList<T>> ExecuteStoredProcedureAsync<T>(string spName, object? parameters = null, CancellationToken cancellationToken = default) where T : new();
+
+        /// <summary>
+        /// 執行 Stored Procedure (不回傳資料)
+        /// </summary>
+        /// <param name="spName">Stored Procedure 名稱</param>
+        /// <param name="parameters">參數，可為 IDictionary、Object 或 IEnumerable&lt;SqlParameter&gt;</param>
+        /// <returns>執行影響筆數</returns>
+        int ExecuteStoredProcedureNonQuery(string spName, object? parameters = null);
+
+        /// <summary>
+        /// 非同步執行 Stored Procedure (不回傳資料)
+        /// </summary>
+        /// <param name="spName">Stored Procedure 名稱</param>
+        /// <param name="parameters">參數，可為 IDictionary、Object 或 IEnumerable&lt;SqlParameter&gt;</param>
+        /// <returns>執行影響筆數</returns>
+        Task<int> ExecuteStoredProcedureNonQueryAsync(string spName, object? parameters = null, CancellationToken cancellationToken = default);
     }
 }

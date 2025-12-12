@@ -24,7 +24,7 @@ namespace SeanTool.CSharp.Net8.Test
         // 連線字串 (請根據實際環境調整)
         // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;User Id=你的帳號;Password=你的密碼;TrustServerCertificate=True;";
         // @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;Trusted_Connection=True;TrustServerCertificate=True;";
-        public string ConnectionString { get; } = @"Server=SEAN-HO-NB\MSSQLSERVER_2022;Database=master;User Id=sa;Password=1234;TrustServerCertificate=True;";
+        public string ConnectionString { get; } = @"Server=(localdb)\MSSQLLocalDB;Database=TestDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
         public DatabaseFixture()
         {
@@ -96,6 +96,7 @@ namespace SeanTool.CSharp.Net8.Test
             // 每個測試方法執行前，產生一個隨機 Table 名稱
             _tempTableName = $"TestTable_{Guid.NewGuid().ToString("N")}";
             CreateTempTable();
+            EnsureStoredProcedures();
         }
 
         // 每個測試結束後清理動態 Table
@@ -125,6 +126,49 @@ namespace SeanTool.CSharp.Net8.Test
         {
             var scope = _serviceProvider.CreateScope();
             return scope.ServiceProvider.GetRequiredService<ISqlTool>();
+        }
+
+        private void EnsureStoredProcedures()
+        {
+            using var tool = GetSqlTool();
+
+            // 1. 查詢用 SP (支援選填參數)
+            // 註: CREATE OR ALTER 需要 SQL Server 2016+
+            string sqlGet = @"
+                CREATE OR ALTER PROCEDURE sp_Test_GetUsers
+                    @UserId INT = NULL
+                AS
+                BEGIN
+                    IF @UserId IS NULL
+                        SELECT * FROM TestUsers ORDER BY UserId
+                    ELSE
+                        SELECT * FROM TestUsers WHERE UserId = @UserId
+                END";
+            tool.ExecuteNonQuery(sqlGet);
+
+            // 2. 新增用 SP (無回傳值)
+            string sqlInsert = @"
+                CREATE OR ALTER PROCEDURE sp_Test_InsertUser
+                    @UserId INT,
+                    @UserName NVARCHAR(50),
+                    @Age INT
+                AS
+                BEGIN
+                    INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) 
+                    VALUES (@UserId, @UserName, @Age, GETDATE())
+                END";
+            tool.ExecuteNonQuery(sqlInsert);
+
+            // 3. 測試 Output 參數用 SP
+            string sqlOutput = @"
+                CREATE OR ALTER PROCEDURE sp_Test_CalcOutput
+                    @InputVal INT,
+                    @OutputVal INT OUTPUT
+                AS
+                BEGIN
+                    SET @OutputVal = @InputVal * 10
+                END";
+            tool.ExecuteNonQuery(sqlOutput);
         }
 
         #region DI & Basic Logic Tests (Original + Yours)
@@ -618,6 +662,151 @@ namespace SeanTool.CSharp.Net8.Test
                 Assert.Contains("Updated", row["UserName"].ToString());
             }
         }
+        #endregion
+
+        #region Stored Procedure Tests
+
+        [Fact(DisplayName = "SP: ExecuteStoredProcedure (DataTable)")]
+        public void ExecuteStoredProcedure_Should_Return_DataTable()
+        {
+            // Ensure SP exists
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+            // Arrange: 準備資料
+            tool.ExecuteNonQuery("DELETE FROM TestUsers WHERE UserId IN (701, 702)");
+            tool.ExecuteNonQuery("INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) VALUES (701, 'SP_UserA', 20, GETDATE()), (702, 'SP_UserB', 30, GETDATE())");
+
+            // Act: 執行 SP
+            var dt = tool.ExecuteStoredProcedure("sp_Test_GetUsers");
+
+            // Assert
+            Assert.NotNull(dt);
+            Assert.True(dt.Rows.Count >= 2); // 因為可能還有其他測試資料，所以用 >=
+            Assert.Contains(dt.AsEnumerable(), r => r["UserName"].ToString() == "SP_UserA");
+        }
+
+        [Fact(DisplayName = "SP Async: ExecuteStoredProcedureAsync (DataTable)")]
+        public async Task ExecuteStoredProcedureAsync_Should_Return_DataTable()
+        {
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+            // Arrange
+            await tool.ExecuteNonQueryAsync("DELETE FROM TestUsers WHERE UserId = 703");
+            await tool.ExecuteNonQueryAsync("INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) VALUES (703, 'SP_Async', 40, GETDATE())");
+
+            // Act
+            var dt = await tool.ExecuteStoredProcedureAsync("sp_Test_GetUsers", new { UserId = 703 });
+
+            // Assert
+            Assert.NotNull(dt);
+            Assert.Single(dt.Rows);
+            Assert.Equal("SP_Async", dt.Rows[0]["UserName"]);
+        }
+
+        [Fact(DisplayName = "SP: ExecuteStoredProcedure<T> (Model List)")]
+        public void ExecuteStoredProcedure_Generic_Should_Return_ModelList()
+        {
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+            // Arrange
+            tool.ExecuteNonQuery("DELETE FROM TestUsers WHERE UserId = 704");
+            tool.ExecuteNonQuery("INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) VALUES (704, 'SP_Model', 50, GETDATE())");
+
+            // Act
+            IList<TestUser> result = tool.ExecuteStoredProcedure<TestUser>("sp_Test_GetUsers", new { UserId = 704 });
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.Equal(704, result[0].UserId);
+            Assert.Equal("SP_Model", result[0].UserName);
+        }
+
+        [Fact(DisplayName = "SP Async: ExecuteStoredProcedureAsync<T> (Model List)")]
+        public async Task ExecuteStoredProcedureAsync_Generic_Should_Return_ModelList()
+        {
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+            // Arrange
+            await tool.ExecuteNonQueryAsync("DELETE FROM TestUsers WHERE UserId = 705");
+            await tool.ExecuteNonQueryAsync("INSERT INTO TestUsers (UserId, UserName, Age, CreatedAt) VALUES (705, 'SP_AsyncModel', 60, GETDATE())");
+
+            // Act
+            IList<TestUser> result = await tool.ExecuteStoredProcedureAsync<TestUser>("sp_Test_GetUsers", new { UserId = 705 });
+
+            // Assert
+            Assert.Single(result);
+            Assert.Equal("SP_AsyncModel", result[0].UserName);
+        }
+
+        [Fact(DisplayName = "SP: ExecuteStoredProcedureNonQuery (Insert)")]
+        public void ExecuteStoredProcedureNonQuery_Should_Insert_Data()
+        {
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+            // Arrange
+            int newId = 706;
+            tool.ExecuteNonQuery("DELETE FROM TestUsers WHERE UserId = @Id", new { Id = newId });
+            var param = new { UserId = newId, UserName = "SP_Insert", Age = 25 };
+
+            // Act
+            int affected = tool.ExecuteStoredProcedureNonQuery("sp_Test_InsertUser", param);
+
+            // Assert
+            Assert.Equal(1, affected);
+            var count = tool.ExecuteScalar("SELECT COUNT(*) FROM TestUsers WHERE UserId = @Id", new { Id = newId });
+            Assert.Equal(1, count);
+        }
+
+        [Fact(DisplayName = "SP Async: ExecuteStoredProcedureNonQueryAsync (Insert)")]
+        public async Task ExecuteStoredProcedureNonQueryAsync_Should_Insert_Data()
+        {
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+            // Arrange
+            int newId = 707;
+            await tool.ExecuteNonQueryAsync("DELETE FROM TestUsers WHERE UserId = @Id", new { Id = newId });
+            var param = new { UserId = newId, UserName = "SP_AsyncInsert", Age = 35 };
+
+            // Act
+            int affected = await tool.ExecuteStoredProcedureNonQueryAsync("sp_Test_InsertUser", param);
+
+            // Assert
+            Assert.Equal(1, affected);
+            var count = await tool.ExecuteScalarAsync("SELECT COUNT(*) FROM TestUsers WHERE UserId = @Id", new { Id = newId });
+            Assert.Equal(1, count);
+        }
+
+        [Fact(DisplayName = "SP Extra: Output Parameters")]
+        public void ExecuteStoredProcedureNonQuery_WithOutputParam_Should_Work()
+        {
+            // 這是額外測試，驗證您在 AddParameters 加入的 IEnumerable<SqlParameter> 功能是否正常
+            EnsureStoredProcedures();
+
+            using var tool = GetSqlTool();
+
+            // Arrange
+            var outParam = new SqlParameter("@OutputVal", SqlDbType.Int) { Direction = ParameterDirection.Output };
+            var parameters = new List<SqlParameter>
+            {
+                new SqlParameter("@InputVal", 5),
+                outParam
+            };
+
+            // Act
+            tool.ExecuteStoredProcedureNonQuery("sp_Test_CalcOutput", parameters);
+
+            // Assert
+            // 預期邏輯是 Output = Input * 10
+            Assert.Equal(50, Convert.ToInt32(outParam.Value));
+        }
+
         #endregion
     }
 }

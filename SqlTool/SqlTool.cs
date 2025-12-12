@@ -333,10 +333,12 @@ namespace SeanTool.CSharp.Net8
         /// </summary>
         /// <param name="sql">SQL指令</param>
         /// <param name="conn">連線物件</param>
+        /// <param name="commandType">指令類型，預設Text</param>
         /// <returns>包含交易設定的SqlCommand</returns>
-        private SqlCommand CreateCommand(string sql, SqlConnection conn)
+        private SqlCommand CreateCommand(string sql, SqlConnection conn, CommandType commandType = CommandType.Text)
         {
             SqlCommand cmd = new SqlCommand(sql, conn);
+            cmd.CommandType = commandType;
             // 在手動交易模式下需要指定 Transaction
             // TransactionScope 模式下，ADO.NET 會自動處理，不需要指定 cmd.Transaction
             if (_SharedTrans != null)
@@ -396,6 +398,15 @@ namespace SeanTool.CSharp.Net8
         private void AddParameters(SqlCommand cmd, object? parameters)
         {
             if (parameters == null) return;
+
+            // 讓使用者可以直接傳入 SqlParameter 陣列 (用於 Output 參數)
+            if (parameters is IEnumerable<SqlParameter> sqlParams)
+            {
+                foreach (SqlParameter p in sqlParams)
+                    cmd.Parameters.Add(p);
+
+                return;
+            }
 
             if (parameters is IDictionary dict)
             {
@@ -1092,6 +1103,109 @@ namespace SeanTool.CSharp.Net8
             string sql = GenerateDeleteSQL<T>();
 
             return await ExecuteNonQueryAsync(sql, data, cancellationToken);
+        }
+
+        public DataTable ExecuteStoredProcedure(string spName, object? parameters = null)
+        {
+            SqlConnection conn = GetConnection();
+            bool isInternalConn = _SharedConn == null;
+
+            try
+            {
+                // 指定 CommandType.StoredProcedure
+                using (SqlCommand cmd = CreateCommand(spName, conn, CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                    {
+                        DataTable dt = new DataTable();
+                        adapter.Fill(dt);
+                        return dt;
+                    }
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public async Task<DataTable> ExecuteStoredProcedureAsync(string spName, object? parameters = null,  CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync(cancellationToken);
+            bool isInternalConn = _SharedConn == null;
+            try
+            {
+                // 指定 CommandType.StoredProcedure
+                using (SqlCommand cmd = CreateCommand(spName, conn,  CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    // 使用 ExecuteReaderAsync
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken))
+                    {
+                        DataTable dt = new DataTable();
+                        // 這裡使用 dt.Load(reader) 
+                        // 但 dt.Load 本身是同步的。如果要純非同步，需手動寫迴圈讀取
+                        // 實務上在 .NET 8，為了方便通常接受 dt.Load(reader) 的短暫 CPU 阻塞，
+                        // 或者寫一個 Helper 使用 await reader.ReadAsync() 來填充
+                        dt.Load(reader);
+                        return dt;
+                    }
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public IList<T> ExecuteStoredProcedure<T>(string spName, object? parameters = null) where T : new()
+        {
+            DataTable dt = ExecuteStoredProcedure(spName, parameters);
+            return DataTableToModel<T>(dt);
+        }
+
+        public async Task<IList<T>> ExecuteStoredProcedureAsync<T>(string spName, object? parameters = null, CancellationToken cancellationToken = default) where T : new()
+        {
+            DataTable dt = await ExecuteStoredProcedureAsync(spName, parameters, cancellationToken);
+            return DataTableToModel<T>(dt);
+        }
+
+        public int ExecuteStoredProcedureNonQuery(string spName, object? parameters = null)
+        {
+            SqlConnection conn = GetConnection();
+            bool isInternalConn = _SharedConn == null;
+
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(spName, conn, CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    return cmd.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public async Task<int> ExecuteStoredProcedureNonQueryAsync(string spName, object? parameters = null, CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync(cancellationToken);
+            bool isInternalConn = _SharedConn == null;
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(spName, conn, CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    return await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
         }
         # endregion
         # endregion
