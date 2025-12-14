@@ -81,18 +81,40 @@ namespace SeanTool.CSharp.Net8.Forms.Test
 
         private void GridTestBtn_Click(object sender, EventArgs e)
         {
-            List<Person> people = new List<Person>()
-            {
-                new Person(){ Name = "Person1" },
-                new Person(){ Name = "Person2" },
-                new Person(){ Name = "Person3" },
-                new Person(){ Name = "Person4" },
-                new Person(){ Name = "Person5" }
-            };
+            List<Address> addressList = new List<Address>();
 
-            Grid<Person> gridForm = new Grid<Person>(people);
-            gridForm.Left = 400;
-            this.Controls.Add(gridForm);
+            for (int i = 1; i <= 5; i++)
+            {
+                addressList.Add(new Address()
+                {
+                    City = $"City{i}",
+                    Street = $"Street{i}",
+                    ZipCode = $"ZipCode{i}"
+                });
+            }
+
+            Form gridForm = new Form();
+            Grid<Address> grid = new Grid<Address>(addressList);
+            grid.Left = 400;
+            gridForm.Controls.Add(grid);
+
+            gridForm.ShowDialog();
+
+            addressList = new List<Address>();
+            gridForm = new Form();
+            for (int i = 1; i <= 50_000_000; i++)
+            {
+                addressList.Add(new Address()
+                {
+                    City = $"City{i}",
+                    Street = $"Street{i}",
+                    ZipCode = $"ZipCode{i}"
+                });
+            }
+            MessageBox.Show("Large data created.");
+            grid.DataSource = addressList;
+            gridForm.Controls.Add(grid);
+            gridForm.ShowDialog();
         }
     }
 }
