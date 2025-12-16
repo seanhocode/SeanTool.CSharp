@@ -206,14 +206,14 @@ namespace SeanTool.CSharp.Net8.Forms
                 _DGV.Invalidate();
             }
 
-            AutoSizeToContent(800);
+            AutoSizeToContent();
         }
 
         /// <summary>
         /// 根據目前的欄位與資料列，自動調整 UserControl 的大小
         /// </summary>
         /// <param name="maxHeight">最大允許高度</param>
-        public void AutoSizeToContent(int maxHeight = 800)
+        public void AutoSizeToContent(int maxHeight = 600, int maxWidth = 800)
         {
             if (_DGV == null) return;
 
@@ -247,11 +247,9 @@ namespace SeanTool.CSharp.Net8.Forms
             // 加上水平捲軸高度預留
             totalHeight += SystemInformation.HorizontalScrollBarHeight + 4;
 
-            // Step.3 限制最大高度
-            if (totalHeight > maxHeight)
-            {
-                totalHeight = maxHeight;
-            }
+            // Step.3 限制最大Size
+            if (totalHeight > maxHeight) totalHeight = maxHeight;
+            if(totalWidth > maxWidth) totalWidth = maxWidth;
 
             // 設定一個最小高度
             if (totalHeight < 50) totalHeight = 50;
