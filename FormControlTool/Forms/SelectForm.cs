@@ -37,13 +37,13 @@
             SelectComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
             SelectComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
 
-            AdjustFormWidthToItems();
+            AutoSizeToContent();
         }
 
         /// <summary>
         /// 計算並調整視窗寬度以適應所有項目
         /// </summary>
-        private void AdjustFormWidthToItems()
+        private void AutoSizeToContent()
         {
             if (Items == null || Items.Count == 0)
                 return;

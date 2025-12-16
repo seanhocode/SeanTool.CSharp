@@ -4,8 +4,13 @@ namespace SeanTool.CSharp.Net8.Forms.Test
 {
     public class Address
     {
+        [DisplayName("城市")]
         public string City { get; set; }
+
+        [DisplayName("街道")]
         public string Street { get; set; }
+
+        [DisplayName("郵遞區號")]
         public string ZipCode { get; set; }
 
         public Address()
