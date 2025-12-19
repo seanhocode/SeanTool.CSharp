@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.0.11222.15
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36401.2 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SingleFileSetting", "SingleFileSetting\SingleFileSetting.csproj", "{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}"
 EndProject
@@ -38,6 +38,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlTool", "SQLTool\SqlTool.csproj", "{CBFF7197-D6EE-4F9B-BDD8-4E765CF55961}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlTool.Test", "SQLTool.Test\SqlTool.Test.csproj", "{DE34D739-EDA7-4581-A0FF-6118B5D05AEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool", "WPFTool\WPFTool.csproj", "{6B46B6C6-16CF-410A-A3D7-1B71065041D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool.Test", "WPFTool.Test\WPFTool.Test.csproj", "{C4773720-671A-4F0E-93B0-857E6200079C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -113,6 +117,14 @@ Global
 		{DE34D739-EDA7-4581-A0FF-6118B5D05AEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE34D739-EDA7-4581-A0FF-6118B5D05AEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE34D739-EDA7-4581-A0FF-6118B5D05AEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B46B6C6-16CF-410A-A3D7-1B71065041D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B46B6C6-16CF-410A-A3D7-1B71065041D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B46B6C6-16CF-410A-A3D7-1B71065041D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B46B6C6-16CF-410A-A3D7-1B71065041D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4773720-671A-4F0E-93B0-857E6200079C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4773720-671A-4F0E-93B0-857E6200079C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4773720-671A-4F0E-93B0-857E6200079C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4773720-671A-4F0E-93B0-857E6200079C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -126,6 +138,7 @@ Global
 		{585256E5-363A-49A8-9DE1-6F43992EA782} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{1F3CD9C8-6448-4769-B00F-92478896986D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{DE34D739-EDA7-4581-A0FF-6118B5D05AEF} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{C4773720-671A-4F0E-93B0-857E6200079C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {83B41981-767F-4395-B5CD-F393F3E71761}

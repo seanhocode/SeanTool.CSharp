@@ -1,0 +1,160 @@
+﻿<!--
+WPF 的 UserControl 預設背景是 Transparent，
+在 XAML 的最外層（例如 <Grid> 或 <UserControl>）暫時加上一個顯眼的背景色測試
+Background="White"
+-->
+
+<UserControl x:Class="SeanTool.CSharp.Net8.WPF.ModelEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SeanTool.CSharp.Net8.WPF"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="800" Background="White">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <!--
+            在類別庫中，引用資源的路徑語法需要改成 Pack URI 格式，這樣 WPF 才知道要去哪個 DLL 找檔案
+            語法格式： pack://application:,,,/你的組件名稱;component/資料夾/檔案.xaml
+            -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/WPFTool;component/Styles/ButtonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <DataTemplate x:Key="TextTemplate">
+                <!--
+                如果想要一有變動後端的 Value 就立刻改變，可使用<TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"/>
+                UpdateSourceTrigger 決定了 「什麼時候把 UI 的資料寫回後端 (ViewModel)」
+                TextBox預設行為： LostFocus (失去焦點時才更新)
+                -->
+                <TextBox Text="{Binding Value}"/>
+            </DataTemplate>
+
+            <DataTemplate x:Key="BooleanTemplate">
+                <CheckBox IsChecked="{Binding Value}" VerticalAlignment="Center"/>
+            </DataTemplate>
+
+            <DataTemplate x:Key="DateTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+
+                    <DatePicker SelectedDate="{Binding DatePart}" 
+                                VerticalAlignment="Center"/>
+
+                    <TextBox Grid.Column="1" 
+                             Text="{Binding TimePart, UpdateSourceTrigger=LostFocus}" 
+                             Margin="5,0,0,0"
+                             ToolTip="格式: HH:mm:ss"
+                             VerticalAlignment="Center"/>
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate x:Key="PathTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="30"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding Value}"/>
+                    <Button Grid.Column="1" Content="..." 
+                            Command="{Binding DataContext.BrowseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                            CommandParameter="{Binding}"/>
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate x:Key="EnumTemplate">
+                <ComboBox ItemsSource="{Binding Options}" 
+                  SelectedItem="{Binding Value}" 
+                  VerticalAlignment="Center"/>
+            </DataTemplate>
+
+            <DataTemplate x:Key="ObjectTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" VerticalAlignment="Center"/>
+
+                    <Button Grid.Column="1" Content="..." Margin="5,0,0,0"
+                            Command="{Binding DataContext.EditObjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}"/>
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate x:Key="PropertyRowTemplate">
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" 
+                       Text="{Binding DisplayName}" 
+                       VerticalAlignment="Center" 
+                       FontWeight="Bold" 
+                       Margin="0,0,10,0"/>
+
+                    <ContentControl Grid.Column="1" Content="{Binding}" IsEnabled="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <ContentControl.Style>
+                            <Style TargetType="ContentControl">
+                                <Setter Property="ContentTemplate" Value="{StaticResource TextTemplate}"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding InputType}" Value="Boolean">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource BooleanTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InputType}" Value="DateTime">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource DateTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InputType}" Value="FilePath">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource PathTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InputType}" Value="FolderPath">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource PathTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InputType}" Value="Number">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource TextTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InputType}" Value="Enum">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource EnumTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InputType}" Value="Object">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource ObjectTemplate}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ContentControl.Style>
+                    </ContentControl>
+
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="10">
+            <ItemsControl ItemsSource="{Binding Properties}" 
+                          ItemTemplate="{StaticResource PropertyRowTemplate}"/>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Background="#F5F5F5">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+                <Button Content="儲存 (Save)" Width="100" Height="30" Margin="5,0"
+                        Command="{Binding SaveCommand}"/>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

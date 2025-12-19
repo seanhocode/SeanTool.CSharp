@@ -1,0 +1,24 @@
+﻿<Window x:Class="SeanTool.CSharp.Net8.WPF.EditorModelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SeanTool.CSharp.Net8.WPF"
+        mc:Ignorable="d"
+        Title="Model Editor" 
+        Height="600" Width="500"
+        WindowStartupLocation="CenterScreen"
+        Background="White">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/WPFTool;component/Styles/ButtonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <local:ModelEditorView TargetObject="{Binding TargetObject, RelativeSource={RelativeSource AncestorType=Window}}"/>
+    </Grid>
+</Window>
