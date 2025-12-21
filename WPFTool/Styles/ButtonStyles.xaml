@@ -1,7 +1,16 @@
-﻿<!--Build Action (建置動作) 必須是 Page (WPF 預設值)-->
+﻿<!--
+    此檔案屬性 Build Action (建置動作) 必須是 Page (WPF 預設值)
+    
+    Style 沒有指定 x:Key 的話，會使的作用域內所有的控件都自動套用該 Style
+    如果有指定 x:Key 的話，那就必須要指定控件的 Style 屬性才能套用該 Style
+    
+    Style: 統一設定控件的屬性
+    ControlTemplate: 更改控件基本的樣貌
+-->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!--Style 透過 TargetType 屬性來設定目標的類別，用 Setter 來設定目標的屬性-->
     <Style TargetType="Button">
         <Setter Property="Background" Value="#F0F0F0"/>
         <Setter Property="Foreground" Value="#333333"/>
@@ -13,16 +22,20 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
+                    <!--TemplateBinding: 用來綁定控件的屬性值-->
                     <Border x:Name="border" 
                             Background="{TemplateBinding Background}" 
                             BorderBrush="{TemplateBinding BorderBrush}" 
                             BorderThickness="{TemplateBinding BorderThickness}" 
-                            CornerRadius="4">
-                        <ContentPresenter HorizontalAlignment="Center" 
-                                          VerticalAlignment="Center"
-                                          RecognizesAccessKey="True"/>
+                            CornerRadius="6">
+                        <!--ContentPresenter 用來顯示控件的原本內容-->
+                        <ContentPresenter 
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            RecognizesAccessKey="True"/>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <!--設定 Trigger 動態改變屬性值-->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#E0E0E0"/>
                             <Setter TargetName="border" Property="BorderBrush" Value="#999999"/>
@@ -41,6 +54,7 @@
         </Setter>
     </Style>
 
+    <!--設定 BaseOn 繼承其他的Style-->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Background" Value="#0078D4"/>
         <Setter Property="Foreground" Value="White"/>

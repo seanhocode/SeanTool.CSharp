@@ -1,14 +1,12 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 
 namespace SeanTool.CSharp.Net8.WPF
 {
-    public class ModelEditorViewModel : INotifyPropertyChanged
+    public class ModelEditorViewModel : ViewModelBase
     {
         // 這取代了 WinForms 的 TableLayoutPanel，直接給 UI 一個清單
         public ObservableCollection<PropertyItem> Properties { get; set; }
@@ -18,7 +16,7 @@ namespace SeanTool.CSharp.Net8.WPF
         public bool IsEditing
         {
             get => _isEditing;
-            set { _isEditing = value; OnPropertyChanged(nameof(IsEditing)); }
+            set { _isEditing = value; OnPropertyChanged(); }
         }
 
         // 檔案瀏覽命令
@@ -129,9 +127,5 @@ namespace SeanTool.CSharp.Net8.WPF
 
             window.ShowDialog();
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string name)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

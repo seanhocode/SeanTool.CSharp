@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Test.Data\Test.Data.csproj" />
     <ProjectReference Include="..\WPFTool\WPFTool.csproj" />
   </ItemGroup>
 

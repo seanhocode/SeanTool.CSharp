@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace SeanTool.CSharp.Net8.WPF
 {
-    public class PropertyItem : INotifyPropertyChanged
+    public class PropertyItem : ViewModelBase
     {
         private readonly object _targetInstance; // 原始 Model 實體
         private readonly PropertyInfo _propInfo; // 屬性資訊
@@ -203,9 +203,5 @@ namespace SeanTool.CSharp.Net8.WPF
             OnPropertyChanged(nameof(DatePart));
             OnPropertyChanged(nameof(TimePart));
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string name)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

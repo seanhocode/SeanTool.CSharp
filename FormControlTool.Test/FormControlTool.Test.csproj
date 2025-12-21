@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FormControlTool\FormControlTool.csproj" />
+    <ProjectReference Include="..\Test.Data\Test.Data.csproj" />
   </ItemGroup>
 
 </Project>

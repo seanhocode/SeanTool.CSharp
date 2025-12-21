@@ -1,9 +1,40 @@
 ﻿<!--
-WPF 的 UserControl 預設背景是 Transparent，
-在 XAML 的最外層（例如 <Grid> 或 <UserControl>）暫時加上一個顯眼的背景色測試
-Background="White"
+    每一個控件都要寫在 <UIElement> 裡面(ex. <UserControl>...</UserControl>)
+    控件的屬性也可以透過 Property="Value" 的語法在 <UIElement> 裡面定義
+    <UIElement Property=”Value”>
+        <ContentElement Property=”Value” />
+    </UIElement>
+    
+    控件的屬性沒辦法用 "Value" (ex.Template) 來定義的話，可以用屬性元素語法 (Property-element syntax) 來表示
+    把 Property="Value" 的語句展開成 <UIElement.Property>
+    <UIElement>
+        <UIElement.Property>
+            <PropertyValue />
+        </UIElement.Property>
+    </UIElement>
+    
+    WPF 的 UserControl 預設背景是 Transparent，
+    在 XAML 的最外層（例如 <Grid> 或 <UserControl>）暫時加上一個顯眼的背景色測試
+    Background="White"
+    
+    應該使用 XAML 來做以下的事情：
+        定義控件
+        定義動畫 (Animation)
+        定義風格與樣版 (Styles and Templates)
+        定義資源 (Resources)
+        定義資料綁定 (Data Binding)
+    
+    應該使用 C# 來做以下的事情：
+        事件處理
+        迴圈、條件判斷、遞迴處理
+        例外處理
+        資料儲存
+        任何非使用者界面相關的工作
 -->
 
+<!--xmlns => 引用命名空間(Namespace)，相當於 C# 中的 using-->
+<!--xmlns:x => 引用其他空間，並將該空間命名為 x-->
+<!--x:Class => 代表在 x 命名空間中定義的 Class 屬性-->
 <UserControl x:Class="SeanTool.CSharp.Net8.WPF.ModelEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -13,6 +44,29 @@ Background="White"
              mc:Ignorable="d" 
              d:DesignHeight="500" d:DesignWidth="800" Background="White">
 
+    <!--
+    Resources 屬性用來存放各種資源或物件，然後再透過 StaticResources 擴充標記來使用
+    
+    所有控件都有 Resources 屬性，而 Resources 的作用範圍僅止於控件內部
+    想要讓某個資源被整個程式共享，那可以將資源放入 App.xaml 中的 Application.Resources 裡面
+    
+    用 {StaticResource } or {DynamicResource } 來引用資源
+        StaticResource: 引用只會發生一次，在程式啟動的時候(若是應用程式的運行過程中，資源有更動，透過 StaticResource 引用的控件不會有任何變化)
+        DynamicResource: 在每次需要時引用資源，可以響應運行過程中資源的更動
+    
+    資源字典ResourceDictionary: 用來存放資源的容器(專案右鍵 -> 加入 -> 資源字典)
+    引用資源字典: 在 Resources 裡面放入 ResourceDictionary，並透過 ResourceDictionary.MergedDictionary 屬性來合併資源字典
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ButtonStyles.xaml" />
+                <ResourceDictionary Source="LabelStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+    
+    c# 中引用資源: https://yuchungchuang.wordpress.com/2019/05/01/wpf-resources/
+    -->
     <UserControl.Resources>
         <ResourceDictionary>
             <!--
@@ -36,7 +90,7 @@ Background="White"
                 <CheckBox IsChecked="{Binding Value}" VerticalAlignment="Center"/>
             </DataTemplate>
 
-            <DataTemplate x:Key="DateTemplate">
+            <DataTemplate x:Key="DateTimeTemplate">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -46,6 +100,7 @@ Background="White"
                     <DatePicker SelectedDate="{Binding DatePart}" 
                                 VerticalAlignment="Center"/>
 
+                    <!--UpdateSourceTrigger: 用來調整更新資料來源的時機-->
                     <TextBox Grid.Column="1" 
                              Text="{Binding TimePart, UpdateSourceTrigger=LostFocus}" 
                              Margin="5,0,0,0"
@@ -100,7 +155,13 @@ Background="White"
                        VerticalAlignment="Center" 
                        FontWeight="Bold" 
                        Margin="0,0,10,0"/>
-
+                    <!--
+                    Content="{Binding}" => 把整個 DataContext 物件原封不動地拿來當作內容
+                    
+                    {Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}} => 往上層找，找到最近的一個 UserControl，拿它的 DataContext 裡面的 IsEditing
+                    RelativeSource: 透過控件之間的相對層級來尋找控件
+                    AncestorType: 從目前的 UI 元件開始，沿著視覺樹（Visual Tree）往上層找，忽略其他類型，直到看到『這種類型』的控制項為止
+                    -->
                     <ContentControl Grid.Column="1" Content="{Binding}" IsEnabled="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <ContentControl.Style>
                             <Style TargetType="ContentControl">
@@ -111,7 +172,7 @@ Background="White"
                                         <Setter Property="ContentTemplate" Value="{StaticResource BooleanTemplate}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding InputType}" Value="DateTime">
-                                        <Setter Property="ContentTemplate" Value="{StaticResource DateTemplate}"/>
+                                        <Setter Property="ContentTemplate" Value="{StaticResource DateTimeTemplate}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding InputType}" Value="FilePath">
                                         <Setter Property="ContentTemplate" Value="{StaticResource PathTemplate}"/>
@@ -152,7 +213,7 @@ Background="White"
         <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Background="#F5F5F5">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
                 <Button Content="儲存 (Save)" Width="100" Height="30" Margin="5,0"
-                        Command="{Binding SaveCommand}"/>
+                        Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" Cursor="Hand"/>
 
             </StackPanel>
         </Border>
