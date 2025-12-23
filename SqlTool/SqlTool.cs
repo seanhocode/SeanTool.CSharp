@@ -186,6 +186,19 @@ namespace SeanTool.CSharp.Net8
             }
         }
 
+        public async Task OpenSharedConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_SharedConn == null)
+            {
+                _SharedConn = new SqlConnection(_ConnectionString);
+                await _SharedConn.OpenAsync(cancellationToken);
+            }
+            else if (_SharedConn.State != ConnectionState.Open)
+            {
+                await _SharedConn.OpenAsync(cancellationToken);
+            }
+        }
+
         public void BeginTransaction()
         {
             if (_CurrentScope != null)
@@ -197,16 +210,45 @@ namespace SeanTool.CSharp.Net8
                 _SharedTrans = _SharedConn!.BeginTransaction();
         }
 
+        public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_CurrentScope != null)
+                throw new InvalidOperationException("已在 TransactionScope 模式中，不可混合使用手動 SqlTransaction。");
+
+            await OpenSharedConnectionAsync(cancellationToken);
+
+            if (_SharedTrans == null)
+                _SharedTrans = _SharedConn!.BeginTransaction();
+        }
+
         public void Commit()
         {
             _SharedTrans?.Commit();
             _SharedTrans = null; // 清空交易物件，準備下一次
         }
 
+        public async Task CommitAsync(CancellationToken cancellationToken = default)
+        {
+            if (_SharedTrans != null)
+            {
+                await _SharedTrans.CommitAsync(cancellationToken);
+                _SharedTrans = null;
+            }
+        }
+
         public void Rollback()
         {
             _SharedTrans?.Rollback();
             _SharedTrans = null;
+        }
+
+        public async Task RollbackAsync(CancellationToken cancellationToken = default)
+        {
+            if (_SharedTrans != null)
+            {
+                await _SharedTrans.RollbackAsync(cancellationToken);
+                _SharedTrans = null;
+            }
         }
         #endregion
 
@@ -276,14 +318,27 @@ namespace SeanTool.CSharp.Net8
         }
 
         /// <summary>
+        /// 非同步檢查是否有共用連線，並取得連線物件
+        /// </summary>
+        /// <returns>有共用回傳現有連線，無共用則回傳薪的</returns>
+        private async Task<SqlConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = _SharedConn ?? new SqlConnection(_ConnectionString);
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync(cancellationToken);
+            return conn;
+        }
+
+        /// <summary>
         /// 建立 SqlCommand
         /// </summary>
         /// <param name="sql">SQL指令</param>
         /// <param name="conn">連線物件</param>
+        /// <param name="commandType">指令類型，預設Text</param>
         /// <returns>包含交易設定的SqlCommand</returns>
-        private SqlCommand CreateCommand(string sql, SqlConnection conn)
+        private SqlCommand CreateCommand(string sql, SqlConnection conn, CommandType commandType = CommandType.Text)
         {
             SqlCommand cmd = new SqlCommand(sql, conn);
+            cmd.CommandType = commandType;
             // 在手動交易模式下需要指定 Transaction
             // TransactionScope 模式下，ADO.NET 會自動處理，不需要指定 cmd.Transaction
             if (_SharedTrans != null)
@@ -343,6 +398,15 @@ namespace SeanTool.CSharp.Net8
         private void AddParameters(SqlCommand cmd, object? parameters)
         {
             if (parameters == null) return;
+
+            // 讓使用者可以直接傳入 SqlParameter 陣列 (用於 Output 參數)
+            if (parameters is IEnumerable<SqlParameter> sqlParams)
+            {
+                foreach (SqlParameter p in sqlParams)
+                    cmd.Parameters.Add(p);
+
+                return;
+            }
 
             if (parameters is IDictionary dict)
             {
@@ -407,6 +471,25 @@ namespace SeanTool.CSharp.Net8
             }
         }
 
+        public async Task<int> ExecuteNonQueryAsync(string sql, object? parameters = null, CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync(cancellationToken);
+            bool isInternalConn = _SharedConn == null;
+
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(sql, conn))
+                {
+                    AddParameters(cmd, parameters);
+                    return await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
         public object? ExecuteScalar(string sql, object? parameters = null)
         {
             SqlConnection conn = GetConnection();
@@ -418,6 +501,24 @@ namespace SeanTool.CSharp.Net8
                 {
                     AddParameters(cmd, parameters);
                     return cmd.ExecuteScalar();
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public async Task<object?> ExecuteScalarAsync(string sql, object? parameters = null, CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync(cancellationToken);
+            bool isInternalConn = _SharedConn == null;
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(sql, conn))
+                {
+                    AddParameters(cmd, parameters);
+                    return await cmd.ExecuteScalarAsync(cancellationToken);
                 }
             }
             finally
@@ -440,6 +541,37 @@ namespace SeanTool.CSharp.Net8
                     {
                         DataTable dt = new DataTable();
                         adapter.Fill(dt);
+                        return dt;
+                    }
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public async Task<DataTable> ExecuteSQLAsync(string sql, object? parameters = null, CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync();
+            bool isInternalConn = _SharedConn == null;
+
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(sql, conn))
+                {
+                    AddParameters(cmd, parameters);
+
+                    // 使用 ExecuteReaderAsync
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken))
+                    {
+                        DataTable dt = new DataTable();
+
+                        // 這裡使用 dt.Load(reader) 
+                        // 但 dt.Load 本身是同步的。如果要純非同步，需手動寫迴圈讀取
+                        // 實務上在 .NET 8，為了方便通常接受 dt.Load(reader) 的短暫 CPU 阻塞，
+                        // 或者寫一個 Helper 使用 await reader.ReadAsync() 來填充
+                        dt.Load(reader);
                         return dt;
                     }
                 }
@@ -484,6 +616,36 @@ namespace SeanTool.CSharp.Net8
             if (_CurrentScope != null)
             {
                 _CurrentScope.Dispose();
+                _CurrentScope = null;
+            }
+
+            GC.SuppressFinalize(this);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            // Step.1 清理 SqlTransaction
+            if (_SharedTrans != null)
+            {
+                await _SharedTrans.DisposeAsync();
+                _SharedTrans = null;
+            }
+
+            // Step.2 清理連線
+            if (_SharedConn != null)
+            {
+                if (_SharedConn.State == ConnectionState.Open)
+                {
+                    await _SharedConn.CloseAsync();
+                }
+                await _SharedConn.DisposeAsync();
+                _SharedConn = null;
+            }
+
+            // Step.3 清理 TransactionScope
+            if (_CurrentScope != null)
+            {
+                _CurrentScope.Dispose(); // TransactionScope 目前沒有 DisposeAsync，只能用同步 Dispose
                 _CurrentScope = null;
             }
 
@@ -559,7 +721,11 @@ namespace SeanTool.CSharp.Net8
                                 Type targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
                                 // 將資料庫的值轉換為屬性的型別 (防止 double 轉 decimal 等型別不符錯誤)
-                                object safeValue = Convert.ChangeType(value, targetType);
+                                object safeValue;
+                                if (targetType.IsEnum)
+                                    safeValue = Enum.ToObject(targetType, value);       // 處理 Enum
+                                else
+                                    safeValue = Convert.ChangeType(value, targetType);  // 處理一般型別
 
                                 prop.SetValue(item, safeValue);
                             }
@@ -576,60 +742,61 @@ namespace SeanTool.CSharp.Net8
 
             return list;
         }
-        # endregion
 
-        # region public methods
-        public IList<T> ExecuteSQL<T>(string sql, object? parameters = null) where T : new()
-        {
-            DataTable dt = ExecuteSQL(sql, parameters);
-
-            return DataTableToModel<T>(dt);
-        }
-
-        public int SingleInsert<T>(T data)
-        {
+        /// <summary>
+        /// 產生單筆 Insert SQL
+        /// </summary>
+        /// <typeparam name="T">Data Model</typeparam>
+        /// <returns>單筆新增SQL語法</returns>
+        private string GenerateSingleInsertSQL<T>(){
             string tableName = GetModelMetadata<T>().TableName;
 
             IList<PropertyInfo> properties = GetModelMetadata<T>().InsertProperties;
 
             string columns = string.Join(", ", properties.Select(p => $"[{p.Name}]"));
             string values = string.Join(", ", properties.Select(p => $"@{p.Name}"));
-            string sql = $"INSERT INTO [{tableName}] ({columns}) VALUES ({values})";
 
-            return ExecuteNonQuery(sql, data);
+            // 加上 ; SELECT SCOPE_IDENTITY(); 以回傳剛剛新增的 ID
+            // 加上 CAST 確保型別轉換順利，ex. 當 ExecuteScalar 在某些情況回傳 decimal 時
+            string sql = $"INSERT INTO [{tableName}] ({columns}) VALUES ({values}); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);";
+
+            return sql;
         }
 
-        public void BulkInsert<T>(IEnumerable<T> data)
-        {
-            DataTable dt = ModelToDataTable(data);
-
-            BulkInsert(dt);
+        /// <summary>
+        /// 共用連線是否開啟
+        /// </summary>
+        /// <returns>true:是/false:否</returns>
+        private bool CheckSharedConnStatus(){
+            return !(_SharedConn == null || _SharedConn.State != ConnectionState.Open);
         }
 
-        public void BulkInsert(DataTable dt)
-        {
-            // 判斷是否使用共用連線
-            // 如果有共用連線 (_SharedConn)，就必須使用它，並帶上交易 (_SharedTrans)
-            // 外部需呼叫 OpenSharedConnection
+        /// <summary>
+        /// 定義SqlBulkCopy設定
+        /// </summary>
+        /// <param name="bulk">SqlBulkCopy</param>
+        /// <param name="dt">DataTable</param>
+        /// <remarks>
+        /// <para>建立Table Mapping</para>
+        /// <para>建立欄位Mapping</para>
+        /// <para>設定Timeout</para>
+        /// </remarks>
+        private void SetupBulkInsertSqlBulkCopy(SqlBulkCopy bulk, DataTable dt, int timeout = 600){
+            bulk.DestinationTableName = dt.TableName;
+            bulk.BulkCopyTimeout = timeout;
 
-            // 確保連線是開的
-            if (_SharedConn == null || _SharedConn.State != ConnectionState.Open)
-                throw new InvalidOperationException("使用 BulkInsert 前請確保連線已開啟");
-
-            using (SqlBulkCopy bulk = new SqlBulkCopy(_SharedConn, SqlBulkCopyOptions.Default, _SharedTrans))
-            {
-                bulk.DestinationTableName = dt.TableName;
-                bulk.BulkCopyTimeout = 600;
-
-                // 依欄位名稱建立對應，確保資料不會錯位
-                foreach (DataColumn col in dt.Columns)
-                    bulk.ColumnMappings.Add(col.ColumnName, col.ColumnName);
-
-                bulk.WriteToServer(dt);
-            }
+            // 依欄位名稱建立對應，確保資料不會錯位
+            foreach (DataColumn col in dt.Columns)
+                bulk.ColumnMappings.Add(col.ColumnName, col.ColumnName);
         }
 
-        public int SingleUpdate<T>(T data)
+        /// <summary>
+        /// 產生單筆 Update SQL
+        /// </summary>
+        /// <typeparam name="T">Data Model</typeparam>
+        /// <returns>單筆更新SQL語法</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        private string GenerateSingleUpdateSQL<T>()
         {
             string tableName = GetModelMetadata<T>().TableName;
 
@@ -645,7 +812,172 @@ namespace SeanTool.CSharp.Net8
 
             string sql = $"UPDATE [{tableName}] SET {setClause} WHERE {whereClause}";
 
+            return sql;
+        }
+
+        /// <summary>
+        /// 產生批次更新臨時表名稱
+        /// </summary>
+        /// <typeparam name="T">Data Model</typeparam>
+        /// <param name="dt">DataTable</param>
+        /// <returns>TargetTableName:原始Table名稱/TempTableName:臨時表Table名稱</returns>
+        private (string TargetTableName, string TempTableName) GenerateBulkUpdateTempTableName<T>(DataTable dt)
+        {
+            string targetTableName = dt.TableName;
+            //SQL Server 的臨時表名稱長度有限制（最多 116 字元）
+            string tempTableName = "#TempUpdate_" + Guid.NewGuid().ToString("N");
+            return (targetTableName, tempTableName);
+        }
+
+        /// <summary>
+        /// 產生批測更新 SQL
+        /// </summary>
+        /// <typeparam name="T">Data Model</typeparam>
+        /// <param name="targetTableName">原始Table名稱</param>
+        /// <param name="tempTableName">臨時表Table名稱</param>
+        /// <returns>批次更新SQL語法</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        private string GenerateBulkUpdateSQL<T>(string targetTableName, string tempTableName)
+        {
+            IList<PropertyInfo> setProperties = GetModelMetadata<T>().UpdateProperties;
+            IList<PropertyInfo> keyProperties = GetModelMetadata<T>().KeyProperties;
+
+            if (!setProperties.Any() || !keyProperties.Any())
+                throw new InvalidOperationException("Update 操作需要至少一個可更新欄位以及至少一個 PrimaryKey 欄位。");
+
+            string setClause = string.Join(", ", setProperties.Select(p => $"T.{p.Name} = Temp.{p.Name}"));
+            string onClause = string.Join(" AND ", keyProperties.Select(p => $"T.{p.Name} = Temp.{p.Name}"));
+
+            string sql = $@"
+                    UPDATE T
+                    SET {setClause}
+                    FROM [{targetTableName}] T
+                    JOIN [{tempTableName}] Temp ON {onClause};
+                ";
+
+            return sql;
+        }
+
+        /// <summary>
+        /// 產生 Delete SQL
+        /// </summary>
+        /// <typeparam name="T">Data Model</typeparam>
+        /// <returns>刪除SQL語法</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        private string GenerateDeleteSQL<T>()
+        {
+            string tableName = GetModelMetadata<T>().TableName;
+
+            IList<PropertyInfo> keyProperties = GetModelMetadata<T>().KeyProperties;
+
+            if (!keyProperties.Any())
+                throw new InvalidOperationException("Delete 操作需要至少一個 PrimaryKey 欄位。");
+
+            string whereClause = string.Join(" AND ", keyProperties.Select(p => $"{p.Name} = @{p.Name}"));
+            string sql = $"DELETE FROM [{tableName}] WHERE {whereClause}";
+
+            return sql;
+        }
+        # endregion
+
+        # region public methods
+        public IList<T> ExecuteSQL<T>(string sql, object? parameters = null) where T : new()
+        {
+            DataTable dt = ExecuteSQL(sql, parameters);
+
+            return DataTableToModel<T>(dt);
+        }
+
+        public async Task<IList<T>> ExecuteSQLAsync<T>(string sql, object? parameters = null, CancellationToken cancellationToken = default) where T : new()
+        {
+            DataTable dt = await ExecuteSQLAsync(sql, parameters, cancellationToken);
+            return DataTableToModel<T>(dt);
+        }
+
+        public int SingleInsert<T>(T data)
+        {
+            string sql = GenerateSingleInsertSQL<T>();
+
+            // 用 ExecuteScalar 取得 SELECT SCOPE_IDENTITY() 的結果
+            object? result = ExecuteScalar(sql, data);
+
+            // 轉型並回傳 ID
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        public async Task<int> SingleInsertAsync<T>(T data, CancellationToken cancellationToken = default)
+        {
+            string sql = GenerateSingleInsertSQL<T>();
+
+            // 用 ExecuteScalar 取得 SELECT SCOPE_IDENTITY() 的結果
+            object? result = await ExecuteScalarAsync(sql, data, cancellationToken);
+
+            // 轉型並回傳 ID
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        public void BulkInsert<T>(IEnumerable<T> data)
+        {
+            DataTable dt = ModelToDataTable(data);
+
+            BulkInsert(dt);
+        }
+
+        public async Task BulkInsertAsync<T>(IEnumerable<T> data, CancellationToken cancellationToken = default)
+        {
+            DataTable dt = ModelToDataTable(data);
+
+            await BulkInsertAsync(dt, cancellationToken);
+        }
+
+        public void BulkInsert(DataTable dt)
+        {
+            // 判斷是否使用共用連線
+            // 如果有共用連線 (_SharedConn)，就必須使用它，並帶上交易 (_SharedTrans)
+            // 外部需呼叫 OpenSharedConnection
+
+            // 確保連線是開的
+            if (!CheckSharedConnStatus())
+                throw new InvalidOperationException("使用 BulkInsert 前請確保連線已開啟");
+
+            using (SqlBulkCopy bulk = new SqlBulkCopy(_SharedConn, SqlBulkCopyOptions.Default, _SharedTrans))
+            {
+                SetupBulkInsertSqlBulkCopy(bulk, dt);
+
+                bulk.WriteToServer(dt);
+            }
+        }
+
+        public async Task BulkInsertAsync(DataTable dt, CancellationToken cancellationToken = default)
+        {
+            // 判斷是否使用共用連線
+            // 如果有共用連線 (_SharedConn)，就必須使用它，並帶上交易 (_SharedTrans)
+            // 外部需呼叫 OpenSharedConnection
+
+            // 確保連線是開的
+            if (!CheckSharedConnStatus())
+                throw new InvalidOperationException("使用 BulkInsert 前請確保連線已開啟");
+
+            using (SqlBulkCopy bulk = new SqlBulkCopy(_SharedConn, SqlBulkCopyOptions.Default, _SharedTrans))
+            {
+                SetupBulkInsertSqlBulkCopy(bulk, dt);
+
+                await bulk.WriteToServerAsync(dt, cancellationToken);
+            }
+        }
+
+        public int SingleUpdate<T>(T data)
+        {
+            string sql = GenerateSingleUpdateSQL<T>();
+
             return ExecuteNonQuery(sql, data);
+        }
+
+        public async Task<int> SingleUpdateAsync<T>(T data, CancellationToken cancellationToken = default)
+        {
+            string sql = GenerateSingleUpdateSQL<T>();
+
+            return await ExecuteNonQueryAsync(sql, data, cancellationToken);
         }
 
         public void BulkUpdate<T>(IEnumerable<T> data)
@@ -669,9 +1001,8 @@ namespace SeanTool.CSharp.Net8
             }
 
             DataTable dt = ModelToDataTable(data);
-            string targetTableName = dt.TableName;
-            //SQL Server 的臨時表名稱長度有限制（最多 116 字元）
-            string tempTableName = "#TempUpdate_" + Guid.NewGuid().ToString("N");
+
+            (string targetTableName, string tempTableName) = GenerateBulkUpdateTempTableName<T>(dt);
 
             try
             {
@@ -680,21 +1011,7 @@ namespace SeanTool.CSharp.Net8
                 dt.TableName = tempTableName;
                 BulkInsert(dt);
 
-                IList<PropertyInfo> setProperties = GetModelMetadata<T>().UpdateProperties;
-                IList<PropertyInfo> keyProperties = GetModelMetadata<T>().KeyProperties;
-
-                if (!setProperties.Any() || !keyProperties.Any())
-                    throw new InvalidOperationException("Update 操作需要至少一個可更新欄位以及至少一個 PrimaryKey 欄位。");
-
-                string setClause = string.Join(", ", setProperties.Select(p => $"T.{p.Name} = Temp.{p.Name}"));
-                string onClause = string.Join(" AND ", keyProperties.Select(p => $"T.{p.Name} = Temp.{p.Name}"));
-
-                string sql = $@"
-                    UPDATE T
-                    SET {setClause}
-                    FROM [{targetTableName}] T
-                    JOIN [{tempTableName}] Temp ON {onClause};
-                ";
+                string sql = GenerateBulkUpdateSQL<T>(targetTableName, tempTableName);
 
                 ExecuteNonQuery(sql);
 
@@ -717,19 +1034,178 @@ namespace SeanTool.CSharp.Net8
             }
         }
 
+        public async Task BulkUpdateAsync<T>(IEnumerable<T> data, CancellationToken cancellationToken = default)
+        {
+            // 標記這次操作是否是由此方法「主動」開啟連線的
+            bool isLocalOpen = false, isLocalTransaction = false;
+
+            // 如果使用者沒有先開啟共用連線，ExecuteNonQuery會關閉連線，且建立的Temp也會不見
+            // 檢查連線狀態：如果是關閉的，就強制打開，並標記起來
+            if (_SharedConn == null || _SharedConn.State != ConnectionState.Open)
+            {
+                await OpenSharedConnectionAsync(cancellationToken);
+                isLocalOpen = true;
+            }
+
+            // 如果當前沒有 TransactionScope 也沒有 SharedTrans，就開啟一個本地交易來保護整個 BulkUpdate 過程
+            if (_SharedTrans == null && Transaction.Current == null)
+            {
+                await BeginTransactionAsync(cancellationToken);
+                isLocalTransaction = true;
+            }
+
+            DataTable dt = ModelToDataTable(data);
+
+            (string targetTableName, string tempTableName) = GenerateBulkUpdateTempTableName<T>(dt);
+
+            try
+            {
+                await ExecuteNonQueryAsync($"SELECT * INTO [{tempTableName}] FROM [{targetTableName}] WHERE 1 = 0", null, cancellationToken);
+
+                dt.TableName = tempTableName;
+                await BulkInsertAsync(dt, cancellationToken);
+
+                string sql = GenerateBulkUpdateSQL<T>(targetTableName, tempTableName);
+
+                await ExecuteNonQueryAsync(sql, null, cancellationToken);
+
+                // 如果是本地開啟的交易，執行成功後 Commit
+                if (isLocalTransaction) await CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                // 發生錯誤，如果是本地交易則 Rollback
+                if (isLocalTransaction) await RollbackAsync(cancellationToken);
+                throw;
+            }
+            finally
+            {
+                try { await ExecuteNonQueryAsync($"DROP TABLE IF EXISTS [{tempTableName}]", cancellationToken); }
+                catch (Exception ex) { Debug.WriteLine(ex.Message); }
+
+                // 如果原本外面就有開啟交易 (Transaction)，這裡就不能關，否則會中斷交易
+                if (isLocalOpen && _SharedConn != null)
+                {
+                    await _SharedConn.CloseAsync();
+                }
+            }
+        }
+
         public int Delete<T>(T data)
         {
-            string tableName = GetModelMetadata<T>().TableName;
-
-            IList<PropertyInfo> keyProperties = GetModelMetadata<T>().KeyProperties;
-
-            if (!keyProperties.Any())
-                throw new InvalidOperationException("Delete 操作需要至少一個 PrimaryKey 欄位。");
-
-            string whereClause = string.Join(" AND ", keyProperties.Select(p => $"{p.Name} = @{p.Name}"));
-            string sql = $"DELETE FROM [{tableName}] WHERE {whereClause}";
+            string sql = GenerateDeleteSQL<T>();
 
             return ExecuteNonQuery(sql, data);
+        }
+
+        public async Task<int> DeleteAsync<T>(T data, CancellationToken cancellationToken = default)
+        {
+            string sql = GenerateDeleteSQL<T>();
+
+            return await ExecuteNonQueryAsync(sql, data, cancellationToken);
+        }
+
+        public DataTable ExecuteStoredProcedure(string spName, object? parameters = null)
+        {
+            SqlConnection conn = GetConnection();
+            bool isInternalConn = _SharedConn == null;
+
+            try
+            {
+                // 指定 CommandType.StoredProcedure
+                using (SqlCommand cmd = CreateCommand(spName, conn, CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                    {
+                        DataTable dt = new DataTable();
+                        adapter.Fill(dt);
+                        return dt;
+                    }
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public async Task<DataTable> ExecuteStoredProcedureAsync(string spName, object? parameters = null,  CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync(cancellationToken);
+            bool isInternalConn = _SharedConn == null;
+            try
+            {
+                // 指定 CommandType.StoredProcedure
+                using (SqlCommand cmd = CreateCommand(spName, conn,  CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    // 使用 ExecuteReaderAsync
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken))
+                    {
+                        DataTable dt = new DataTable();
+                        // 這裡使用 dt.Load(reader) 
+                        // 但 dt.Load 本身是同步的。如果要純非同步，需手動寫迴圈讀取
+                        // 實務上在 .NET 8，為了方便通常接受 dt.Load(reader) 的短暫 CPU 阻塞，
+                        // 或者寫一個 Helper 使用 await reader.ReadAsync() 來填充
+                        dt.Load(reader);
+                        return dt;
+                    }
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public IList<T> ExecuteStoredProcedure<T>(string spName, object? parameters = null) where T : new()
+        {
+            DataTable dt = ExecuteStoredProcedure(spName, parameters);
+            return DataTableToModel<T>(dt);
+        }
+
+        public async Task<IList<T>> ExecuteStoredProcedureAsync<T>(string spName, object? parameters = null, CancellationToken cancellationToken = default) where T : new()
+        {
+            DataTable dt = await ExecuteStoredProcedureAsync(spName, parameters, cancellationToken);
+            return DataTableToModel<T>(dt);
+        }
+
+        public int ExecuteStoredProcedureNonQuery(string spName, object? parameters = null)
+        {
+            SqlConnection conn = GetConnection();
+            bool isInternalConn = _SharedConn == null;
+
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(spName, conn, CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    return cmd.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
+        }
+
+        public async Task<int> ExecuteStoredProcedureNonQueryAsync(string spName, object? parameters = null, CancellationToken cancellationToken = default)
+        {
+            SqlConnection conn = await GetConnectionAsync(cancellationToken);
+            bool isInternalConn = _SharedConn == null;
+            try
+            {
+                using (SqlCommand cmd = CreateCommand(spName, conn, CommandType.StoredProcedure))
+                {
+                    AddParameters(cmd, parameters);
+                    return await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                if (isInternalConn) CloseInternalConnection(conn);
+            }
         }
         # endregion
         # endregion

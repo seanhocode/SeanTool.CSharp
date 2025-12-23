@@ -4,13 +4,13 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FormControlTool\FormControlTool.csproj" />
     <ProjectReference Include="..\Test.Data\Test.Data.csproj" />
+    <ProjectReference Include="..\WPFTool\WPFTool.csproj" />
   </ItemGroup>
 
 </Project>
