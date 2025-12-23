@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>SeanTool.CSharp.ZipTool</PackageId>
+    <Version>0.0.3</Version>
+    <Authors>Sean Ho</Authors>
+    <Description>ZipTool</Description>
+    <PackageTags>tool;zip;net8</PackageTags>
+    <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+</Project>

@@ -1,5 +1,5 @@
 # 建立類別庫專案
-1. 於主方案中建立C# .Net8``類別庫``專案
+1. 於主方案中建立C# ``類別庫``專案
     - ![](./image/CreateNewTool/CreateNewToolProjectLocate.png)
     - ![](./image/CreateNewTool/CreateNewToolProjectSetting.png)
 2. 於Test資料夾中建立``xUnit測試專案``
@@ -10,18 +10,18 @@
     - 
     ```csproj=
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <PackageId>SeanTool.CSharp.Net8.FileTool</PackageId>
+        <PackageId>SeanTool.CSharp.FileTool</PackageId>
         <Version>0.0.2</Version>
         <Authors>Sean Ho</Authors>
         <Description>FileTool</Description>
         <PackageTags>tool;file;net8</PackageTags>
-        <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp.Net8</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.Net8.git</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
     ```
     - ![](./image/CreateNewTool/csprojSetting.png)
 4. 設定自動部屬
     - 將新Tool名稱加入``.github\workflows\NugetPublish.yml``的``INCLUDE_PROJECTS``
     - ![](./image/CreateNewTool/ymlSetting.png)
-5. 命名空間設定為``SeanTool.CSharp.Net8``
+5. 命名空間設定為``SeanTool.CSharp``
     - ![](./image/CreateNewTool/NameSpaceSetting.png)

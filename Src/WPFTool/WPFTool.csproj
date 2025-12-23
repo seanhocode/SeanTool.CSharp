@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+      <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+      <PackageId>SeanTool.CSharp.WPFTool</PackageId>
+      <Version>0.0.1</Version>
+      <Authors>Sean Ho</Authors>
+      <Description>WPFTool</Description>
+      <PackageTags>tool;wpf;net8</PackageTags>
+      <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
+      <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
+      <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+</Project>
