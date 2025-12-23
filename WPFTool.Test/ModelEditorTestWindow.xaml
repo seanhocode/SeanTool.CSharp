@@ -1,0 +1,26 @@
+﻿<!--
+    Step.1 加入WPFTool參考(行:8)
+    Step.2 嵌入ModelEditorView(行:22)
+    Step.3 設定TargetObject綁定(於.cs初始化時設定this.DataContext = this;)
+-->
+<Window x:Class="SeanTool.CSharp.Net8.WPF.Test.ModelEditorTestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SeanTool.CSharp.Net8.WPF.Test"
+        xmlns:WPFTool="clr-namespace:SeanTool.CSharp.Net8.WPF;assembly=WPFTool"
+        mc:Ignorable="d"
+        Title="ModelEditorTestWindow" Height="450" Width="800">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <WPFTool:ModelEditor Grid.Row="0" TargetObject="{Binding _Person}" />
+
+        <Button Grid.Row="1" Click="CheckModelValue" Height="30" Margin="5">CheckValue</Button>
+    </Grid>
+</Window>

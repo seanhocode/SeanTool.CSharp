@@ -1,24 +1,10 @@
 ﻿using System.ComponentModel;
+using Test.Data.Enums;
 
-namespace SeanTool.CSharp.Net8.Forms.Test
+namespace Test.Data.Models
 {
-    public class Address
-    {
-        public string City { get; set; }
-        public string Street { get; set; }
-        public string ZipCode { get; set; }
-
-        public Address()
-        {
-            City = "Taipei";
-            Street = "Sec. 4, Zhongxiao E. Rd.";
-            ZipCode = "110";
-        }
-    }
-    public enum Sex { Man, Woman }
-
     [DisplayName("使用者基本資訊")]
-    public class Person
+    public class PersonBase
     {
         [DisplayName("ID(long)")]
         public long ID { get; set; }
@@ -41,18 +27,6 @@ namespace SeanTool.CSharp.Net8.Forms.Test
         [DisplayName("是否啟用")]
         public bool IsEnabled { get; set; }
 
-        [DisplayName("附加檔案路徑(*.*)")]
-        [EditorPath(PathType.File)]
-        public string OtherFilePath { get; set; }
-
-        [DisplayName("照片檔案路徑(*.png)")]
-        [EditorPath(PathType.File, "PNG (*.png)|*.png")]
-        public string PhotoImagePath { get; set; }
-
-        [DisplayName("照片資料夾路徑")]
-        [EditorPath(PathType.Folder)]
-        public string PhotoImageFolderPath { get; set; }
-
         public string NickName { get; set; }
 
         [DisplayName("身高(float)")]
@@ -67,7 +41,7 @@ namespace SeanTool.CSharp.Net8.Forms.Test
         [DisplayName("地址(Address)")]
         public Address HomeAddress { get; set; } = new Address();
 
-        public Person()
+        public PersonBase()
         {
             ID = 123337203854775807;
             Name = "SeanHo";
@@ -76,9 +50,6 @@ namespace SeanTool.CSharp.Net8.Forms.Test
             Phone = 0900123450;
             BirthDate = new DateTime(2002, 1, 16, 1, 2, 3);
             IsEnabled = true;
-            OtherFilePath = @"C:\SeanFile.txt";
-            PhotoImagePath = @"C:\SeanPhoto.png";
-            PhotoImageFolderPath = @"C:\";
             NickName = @"Sean";
             Height = 175.5f;
             Weight = 70.25;
