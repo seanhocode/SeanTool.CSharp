@@ -35,7 +35,7 @@
 <!--xmlns => 引用命名空間(Namespace)，相當於 C# 中的 using-->
 <!--xmlns:x => 引用其他空間，並將該空間命名為 x-->
 <!--x:Class => 代表在 x 命名空間中定義的 Class 屬性-->
-<UserControl x:Class="SeanTool.CSharp.Net8.WPF.ModelEditorView"
+<UserControl x:Class="SeanTool.CSharp.Net8.WPF.ModelEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 

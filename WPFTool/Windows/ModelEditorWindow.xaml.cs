@@ -5,14 +5,14 @@ namespace SeanTool.CSharp.Net8.WPF
     /// <summary>
     /// EditorModelWindow.xaml 的互動邏輯
     /// </summary>
-    public partial class EditorModelWindow : Window
+    public partial class ModelEditorWindow : Window
     {
         // 定義相依屬性，讓 XAML 裡的 ModelEditorView 可以綁定到這裡
         public static readonly DependencyProperty TargetObjectProperty =
             DependencyProperty.Register(
                 nameof(TargetObject),
                 typeof(object),
-                typeof(EditorModelWindow),
+                typeof(ModelEditorWindow),
                 new PropertyMetadata(null));
 
         public object TargetObject
@@ -21,7 +21,7 @@ namespace SeanTool.CSharp.Net8.WPF
             set { SetValue(TargetObjectProperty, value); }
         }
 
-        public EditorModelWindow(object targetModel)
+        public ModelEditorWindow(object targetModel)
         {
             InitializeComponent();
 

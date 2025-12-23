@@ -12,11 +12,13 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <Button Grid.Row="0" Click="GenModelEditorByTestProject" Height="30" Margin="5">GenModelEditorByTestProject</Button>
         <Button Grid.Row="1" Click="GenModelEditorByTool" Height="30" Margin="5">GenModelEditorByTool</Button>
         <Button Grid.Row="2" Click="CheckModelValue" Height="30" Margin="5">CheckValue</Button>
+        <Button Grid.Row="3" Click="ShowDynamicDataGrid" Height="30" Margin="5">ShowDynamicDataGrid</Button>
     </Grid>
 </Window>

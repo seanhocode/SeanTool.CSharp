@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace SeanTool.CSharp.Net8.WPF.Test
 {
@@ -10,6 +12,7 @@ namespace SeanTool.CSharp.Net8.WPF.Test
         // 1. 這是我們要編輯的測試物件
         public Person _Person { get; set; }
 
+
         public MainWindow()
         {
             InitializeComponent();
@@ -19,14 +22,14 @@ namespace SeanTool.CSharp.Net8.WPF.Test
 
         private void GenModelEditorByTool(object sender, RoutedEventArgs e)
         {
-            var editorWindow = new EditorModelWindow(_Person);
+            Window editorWindow = new ModelEditorWindow(_Person);
 
             editorWindow.ShowDialog();
         }
 
         private void GenModelEditorByTestProject(object sender, RoutedEventArgs e)
         {
-            var editorWindow = new ModelEditorTestWindow();
+            Window editorWindow = new ModelEditorTestWindow();
 
             editorWindow.ShowDialog();
         }
@@ -36,6 +39,13 @@ namespace SeanTool.CSharp.Net8.WPF.Test
             Person person = _Person;
             // 此處下中斷點檢查 person 內容
             MessageBox.Show($"Name: {person.Name}, Age: {person.Age}");
+        }
+
+        private void ShowDynamicDataGrid(object sender, RoutedEventArgs e)
+        {
+            Window editorWindow = new DynamicDataGridTestWindow();
+
+            editorWindow.ShowDialog();
         }
     }
 }

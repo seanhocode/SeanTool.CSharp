@@ -108,8 +108,8 @@ namespace SeanTool.CSharp.Net8.WPF
                 return;
             }
 
-            // 用自訂的 EditorModelWindow
-            var window = new EditorModelWindow(item.Value)
+            // 用自訂的 ModelEditorWindow
+            var window = new ModelEditorWindow(item.Value)
             {
                 // 如果想要針對屬性名稱顯示更詳細的標題
                 Title = $"編輯屬性: {item.DisplayName}",

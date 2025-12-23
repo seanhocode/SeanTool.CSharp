@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace SeanTool.CSharp.Net8.WPF
@@ -7,9 +6,9 @@ namespace SeanTool.CSharp.Net8.WPF
     /// <summary>
     /// ModelEditorView.xaml 的互動邏輯
     /// </summary>
-    public partial class ModelEditorView : UserControl
+    public partial class ModelEditor : UserControl
     {
-        public ModelEditorView()
+        public ModelEditor()
         {
             InitializeComponent();
         }
@@ -40,7 +39,7 @@ namespace SeanTool.CSharp.Net8.WPF
             DependencyProperty.Register(
                 nameof(TargetObject),           // 相依屬性名稱
                 typeof(object),                 // 相依屬性型別
-                typeof(ModelEditorView),        // 擁有相依屬性的類別
+                typeof(ModelEditor),            // 擁有相依屬性的類別
                 /**
                  * 相依屬性的其它設定
                  * param1: 屬性的預設值
@@ -74,7 +73,7 @@ namespace SeanTool.CSharp.Net8.WPF
         /// <param name="e">屬性值改變事件的參數</param>
         private static void OnTargetObjectChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            ModelEditorView? view = d as ModelEditorView;
+            ModelEditor? view = d as ModelEditor;
             if (view != null && e.NewValue != null)
             {
                 // 當外部給了新的 Model，我們內部就 new 一個 ViewModel

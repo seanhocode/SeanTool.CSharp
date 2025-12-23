@@ -7,8 +7,8 @@ namespace SeanTool.CSharp.Net8.WPF
 {
     public class PropertyItem : ViewModelBase
     {
-        private readonly object _targetInstance; // 原始 Model 實體
-        private readonly PropertyInfo _propInfo; // 屬性資訊
+        private readonly object _TargetInstance; // 原始 Model 實體
+        private readonly PropertyInfo _PropInfo; // 屬性資訊
 
         public string PropertyName { get; }
         public string DisplayName { get; }
@@ -21,13 +21,13 @@ namespace SeanTool.CSharp.Net8.WPF
         public string FileFilter { get; private set; }
 
         // 暫存值
-        private object? _pendingValue;
+        private object? _PendingValue;
 
         // 建構子：透過 Reflection 初始化
         public PropertyItem(object instance, PropertyInfo prop)
         {
-            _targetInstance = instance;
-            _propInfo = prop;
+            _TargetInstance = instance;
+            _PropInfo = prop;
             PropertyName = prop.Name;
 
             // 處理 DisplayName Attribute
@@ -35,7 +35,7 @@ namespace SeanTool.CSharp.Net8.WPF
             DisplayName = dispAttr != null ? dispAttr.DisplayName : prop.Name;
 
             // 初始化時，先從 Model 讀取現有的值到暫存區
-            _pendingValue = _propInfo.GetValue(_targetInstance);
+            _PendingValue = _PropInfo.GetValue(_TargetInstance);
 
             // 判斷 InputType (對應你原本的 CreateEditorControl 邏輯)
             DetermineInputType();
@@ -48,18 +48,18 @@ namespace SeanTool.CSharp.Net8.WPF
             // 如果是 Enum，就轉成字串給 UI，這樣才能對應到 Options 裡的字串
             get
             {
-                if (InputType == EditorInputType.Enum && _pendingValue != null)
+                if (InputType == EditorInputType.Enum && _PendingValue != null)
                 {
-                    return _pendingValue.ToString();
+                    return _PendingValue.ToString();
                 }
-                return _pendingValue;
+                return _PendingValue;
             }
             set
             {
                 try
                 {
                     object? safeValue = value;
-                    Type targetType = Nullable.GetUnderlyingType(_propInfo.PropertyType) ?? _propInfo.PropertyType;
+                    Type targetType = Nullable.GetUnderlyingType(_PropInfo.PropertyType) ?? _PropInfo.PropertyType;
 
                     // 1. Enum 轉換 (UI 傳來字串 -> 轉回 Enum 存入暫存)
                     if (targetType.IsEnum && safeValue is string strEnum)
@@ -73,7 +73,7 @@ namespace SeanTool.CSharp.Net8.WPF
                     }
 
                     // 更新暫存值 (這裡存的是真正的 Enum 物件)
-                    _pendingValue = safeValue;
+                    _PendingValue = safeValue;
 
                     Refresh();
                 }
@@ -131,7 +131,7 @@ namespace SeanTool.CSharp.Net8.WPF
         {
             try
             {
-                _propInfo.SetValue(_targetInstance, _pendingValue);
+                _PropInfo.SetValue(_TargetInstance, _PendingValue);
             }
             catch (Exception ex)
             {
@@ -141,9 +141,9 @@ namespace SeanTool.CSharp.Net8.WPF
 
         private void DetermineInputType()
         {
-            Type type = Nullable.GetUnderlyingType(_propInfo.PropertyType) ?? _propInfo.PropertyType;
+            Type type = Nullable.GetUnderlyingType(_PropInfo.PropertyType) ?? _PropInfo.PropertyType;
 
-            var pathAttr = _propInfo.GetCustomAttribute<EditorPathAttribute>();
+            var pathAttr = _PropInfo.GetCustomAttribute<EditorPathAttribute>();
             if (pathAttr != null)
             {
                 InputType = pathAttr.Type == PathType.File

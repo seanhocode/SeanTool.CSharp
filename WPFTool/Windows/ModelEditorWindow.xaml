@@ -1,4 +1,4 @@
-﻿<Window x:Class="SeanTool.CSharp.Net8.WPF.EditorModelWindow"
+﻿<Window x:Class="SeanTool.CSharp.Net8.WPF.ModelEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,6 +19,6 @@
     </Window.Resources>
 
     <Grid>
-        <local:ModelEditorView TargetObject="{Binding TargetObject, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        <local:ModelEditor TargetObject="{Binding TargetObject, RelativeSource={RelativeSource AncestorType=Window}}"/>
     </Grid>
 </Window>
