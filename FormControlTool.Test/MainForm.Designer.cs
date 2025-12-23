@@ -31,6 +31,7 @@
             SelectFormTestBtn = new Button();
             ModelEditorTestBtn = new Button();
             TextFormTestBtn = new Button();
+            GridTestBtn = new Button();
             SuspendLayout();
             // 
             // SelectFormTestBtn
@@ -66,11 +67,23 @@
             TextFormTestBtn.UseVisualStyleBackColor = true;
             TextFormTestBtn.Click += TextFormTestBtn_Click;
             // 
+            // GridTestBtn
+            // 
+            GridTestBtn.Font = new Font("Microsoft JhengHei UI", 9F);
+            GridTestBtn.Location = new Point(12, 105);
+            GridTestBtn.Name = "GridTestBtn";
+            GridTestBtn.Size = new Size(125, 25);
+            GridTestBtn.TabIndex = 3;
+            GridTestBtn.Text = "GridTest";
+            GridTestBtn.UseVisualStyleBackColor = true;
+            GridTestBtn.Click += GridTestBtn_Click;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(GridTestBtn);
             Controls.Add(TextFormTestBtn);
             Controls.Add(ModelEditorTestBtn);
             Controls.Add(SelectFormTestBtn);
@@ -85,5 +98,6 @@
         private Button SelectFormTestBtn;
         private Button ModelEditorTestBtn;
         private Button TextFormTestBtn;
+        private Button GridTestBtn;
     }
 }

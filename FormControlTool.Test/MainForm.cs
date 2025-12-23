@@ -1,5 +1,4 @@
-using SeanTool.CSharp.Net8.Forms;
-using System.ComponentModel;
+using Test.Data.Models;
 
 namespace SeanTool.CSharp.Net8.Forms.Test
 {
@@ -72,10 +71,72 @@ namespace SeanTool.CSharp.Net8.Forms.Test
             editForm.AddCustomizeBtn(addAgeBtn);
             editForm.AddCustomizeBtn(minusdAgeBtn);
 
-            if (editForm.ShowDialog() == DialogResult.OK){
+            if (editForm.ShowDialog() == DialogResult.OK)
+            {
                 editForm.ViewMode = ModelEditorViewMode.Viewer;
                 editForm.ShowDialog();
             }
         }
+
+        # region Grid Test
+        private void GridTestBtn_Click(object sender, EventArgs e)
+        {
+            // 產生測試資料
+            List<Address> addressList = new List<Address>();
+            for (int i = 1; i <= 5; i++)
+            {
+                addressList.Add(new Address()
+                {
+                    City = $"City{i}",
+                    Street = $"Street{i}",
+                    ZipCode = $"ZipCode{i}"
+                });
+            }
+
+            // 產生欄位定義
+            IList<GridColumnDefinition<Address>> myColumnDefinitions = addressList.GenerateDefaultColumns<Address>();
+            GridColumnDefinition<Address> showDataBtn = new GridColumnDefinition<Address>();
+            showDataBtn.IsButtonColumn = true;
+            showDataBtn.ButtonClickAction = ShowData;
+            showDataBtn.ColumnValue = "ShowData";
+            showDataBtn.ColumnName = "ShowDataBtn";
+            showDataBtn.HeaderText = "顯示地址";
+            showDataBtn.Width = 100;
+            myColumnDefinitions.Add(showDataBtn);
+
+            // 產生Grid視窗
+            Form gridForm = new Form();
+            gridForm.LoadGridFormSetting();
+            Grid<Address> grid = new Grid<Address>(addressList, columnDefinitions: myColumnDefinitions, editMode: GridEditMode.Editable);
+            gridForm.Controls.Add(grid);
+
+            // Show Grid
+            gridForm.ShowDialog();
+
+            // 重新產生大筆資料
+            addressList = new List<Address>();
+            for (int i = 1; i <= 500_000; i++)
+            {
+                addressList.Add(new Address()
+                {
+                    City = $"City{i}",
+                    Street = $"Street{i}",
+                    ZipCode = $"ZipCode{i}"
+                });
+            }
+            MessageBox.Show("Large data created.");
+
+            // Grid重新載入資料
+            grid.DataSource = addressList;
+
+            gridForm.ShowDialog();
+
+            MessageBox.Show("Grid closed.");
+        }
+
+        private void ShowData(Address address){
+            MessageBox.Show($"地址:{address.ZipCode}-{address.City}{address.Street}");
+        }
+        # endregion
     }
 }
