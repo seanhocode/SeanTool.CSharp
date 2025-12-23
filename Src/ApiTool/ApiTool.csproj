@@ -10,7 +10,7 @@
     <Version>0.0.2</Version>
     <Authors>Sean Ho</Authors>
     <Description>ApiTool</Description>
-    <PackageTags>tool;api;net8</PackageTags>
+    <PackageTags>tool;api;net8;net10</PackageTags>
     <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

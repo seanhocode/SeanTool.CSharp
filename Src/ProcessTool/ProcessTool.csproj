@@ -10,7 +10,7 @@
     <Version>0.0.3</Version>
     <Authors>Sean Ho</Authors>
     <Description>ProcessTool</Description>
-    <PackageTags>tool;process;net8</PackageTags>
+    <PackageTags>tool;process;net8;net10</PackageTags>
     <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

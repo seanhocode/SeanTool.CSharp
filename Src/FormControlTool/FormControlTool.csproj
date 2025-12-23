@@ -12,7 +12,7 @@
     <Version>0.0.4</Version>
     <Authors>Sean Ho</Authors>
     <Description>FormControlTool</Description>
-    <PackageTags>tool;form;control;net8</PackageTags>
+    <PackageTags>tool;form;control;net8;net10</PackageTags>
     <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
