@@ -18,8 +18,8 @@
         <Authors>Sean Ho</Authors>
         <Description>[ToolName]</Description>
         <PackageTags>tool;zip;net8;net10</PackageTags>
-        <PackageProjectUrl>https://github.com/seanhocode/Tool.CSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/seanhocode/Tool.CSharp.git</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/seanhocode/SeanTool.CSharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/seanhocode/SeanTool.CSharp.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
     ```
     - ![](./image/CreateNewTool/csprojSetting.png)
