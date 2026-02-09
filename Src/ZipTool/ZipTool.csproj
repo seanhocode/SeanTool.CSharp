@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.ZipTool</PackageId>
-    <Version>0.0.3</Version>
+    <Version>0.0.4</Version>
     <Description>ZipTool</Description>
     <PackageTags>tool;zip;net8;net10</PackageTags>
   </PropertyGroup>

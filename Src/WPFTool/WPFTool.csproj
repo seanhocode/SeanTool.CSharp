@@ -3,7 +3,7 @@
     <TargetFrameworks>$(WindowsTfms)</TargetFrameworks>
     <UseWPF>true</UseWPF>
     <PackageId>SeanTool.CSharp.WPFTool</PackageId>
-    <Version>0.0.1</Version>
+    <Version>0.0.2</Version>
     <Description>WPFTool</Description>
     <PackageTags>tool;wpf;net8;net10</PackageTags>
   </PropertyGroup>

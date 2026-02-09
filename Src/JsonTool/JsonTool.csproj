@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.JsonTool</PackageId>
-    <Version>0.0.4</Version>
+    <Version>0.0.5</Version>
     <Description>JsonTool</Description>
     <PackageTags>tool;json;net8;net10</PackageTags>
   </PropertyGroup>

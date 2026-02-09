@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.FileTool</PackageId>
-    <Version>0.0.3</Version>
+    <Version>0.0.4</Version>
     <Description>FileTool</Description>
     <PackageTags>tool;file;net8;net10</PackageTags>
   </PropertyGroup>

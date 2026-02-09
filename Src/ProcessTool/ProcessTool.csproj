@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.ProcessTool</PackageId>
-    <Version>0.0.3</Version>
+    <Version>0.0.4</Version>
     <Description>ProcessTool</Description>
     <PackageTags>tool;process;net8;net10</PackageTags>
   </PropertyGroup>

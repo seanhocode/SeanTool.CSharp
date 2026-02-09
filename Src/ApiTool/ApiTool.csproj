@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.ApiTool</PackageId>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Description>ApiTool</Description>
     <PackageTags>tool;api;net8;net10</PackageTags>
   </PropertyGroup>

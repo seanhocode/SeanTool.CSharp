@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.SqlTool</PackageId>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Description>SqlTool</Description>
     <PackageTags>tool;sql;net8;net10</PackageTags>
   </PropertyGroup>
