@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.ZipTool</PackageId>
@@ -6,4 +7,5 @@
     <Description>ZipTool</Description>
     <PackageTags>tool;zip;net8;net10</PackageTags>
   </PropertyGroup>
+
 </Project>

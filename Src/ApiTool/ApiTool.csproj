@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.ApiTool</PackageId>
@@ -6,8 +7,10 @@
     <Description>ApiTool</Description>
     <PackageTags>tool;api;net8;net10</PackageTags>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
+
 </Project>

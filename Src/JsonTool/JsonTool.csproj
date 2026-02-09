@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.JsonTool</PackageId>
@@ -6,4 +7,5 @@
     <Description>JsonTool</Description>
     <PackageTags>tool;json;net8;net10</PackageTags>
   </PropertyGroup>
+
 </Project>

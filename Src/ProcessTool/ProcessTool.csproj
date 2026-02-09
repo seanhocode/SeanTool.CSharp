@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.ProcessTool</PackageId>
@@ -6,4 +7,5 @@
     <Description>ProcessTool</Description>
     <PackageTags>tool;process;net8;net10</PackageTags>
   </PropertyGroup>
+
 </Project>

@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFrameworks>$(WindowsTfms)</TargetFrameworks>
     <UseWPF>true</UseWPF>
@@ -7,4 +8,5 @@
     <Description>WPFTool</Description>
     <PackageTags>tool;wpf;net8;net10</PackageTags>
   </PropertyGroup>
+
 </Project>
