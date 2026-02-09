@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup>
+    <Authors>Sean Ho</Authors>
+    <PackageProjectUrl>https://github.com/seanhocode/SeanTool.CSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/seanhocode/SeanTool.CSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <BaseTfm>net8.0</BaseTfm>
+
+    <IsNet10Supported Condition="'$(IsNet10Supported)' == '' AND Exists('$(MSBuildSDKsPath)\..\..\10.0')">true</IsNet10Supported>
+    <!-- <IsNet11Supported Condition="'$(IsNet11Supported)' == '' AND Exists('$(MSBuildSDKsPath)\..\..\11.0')">true</IsNet11Supported> -->
+    
+    <IsNet10Supported Condition="'$(IsNet10Supported)' != 'true' AND '$(NETCoreSdkVersion)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">true</IsNet10Supported>
+    <!-- <IsNet11Supported Condition="'$(IsNet11Supported)' != 'true' AND '$(NETCoreSdkVersion)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '11.0'))">true</IsNet11Supported> -->
+
+    <DefaultTfms>$(BaseTfm)</DefaultTfms>
+    <DefaultTfms Condition="'$(IsNet10Supported)' == 'true'">$(DefaultTfms);net10.0</DefaultTfms>
+    <!-- <DefaultTfms Condition="'$(IsNet11Supported)' == 'true'">$(DefaultTfms);net11.0</DefaultTfms> -->
+
+    <WindowsTfms>$(BaseTfm)-windows</WindowsTfms>
+    <WindowsTfms Condition="'$(IsNet10Supported)' == 'true'">$(WindowsTfms);net10.0-windows</WindowsTfms>
+    <!-- <WindowsTfms Condition="'$(IsNet11Supported)' == 'true'">$(WindowsTfms);net11.0-windows</WindowsTfms> -->
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Test'))">
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Test')) 
+                        AND '$(MSBuildProjectName)' != 'WPFTool.Test' 
+                        AND '$(MSBuildProjectName)' != 'FormControlTool.Test'">
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
