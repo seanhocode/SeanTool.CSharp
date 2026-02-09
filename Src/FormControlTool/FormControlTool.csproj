@@ -1,21 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
-    <Nullable>enable</Nullable>
+    <TargetFrameworks>$(WindowsTfms)</TargetFrameworks>
     <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>SeanTool.CSharp.FormControlTool</PackageId>
     <Version>0.0.4</Version>
-    <Authors>Sean Ho</Authors>
     <Description>FormControlTool</Description>
     <PackageTags>tool;form;control;net8;net10</PackageTags>
-    <PackageProjectUrl>https://github.com/seanhocode/SeanTool.CSharp</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/seanhocode/SeanTool.CSharp.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
-
 </Project>

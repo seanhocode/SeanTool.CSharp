@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <Authors>Sean Ho</Authors>
+    <PackageProjectUrl>https://github.com/seanhocode/SeanTool.CSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/seanhocode/SeanTool.CSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <HasNet10 Condition="'$(NETCoreSdkRuntimeIdentifier)' != ''">true</HasNet10>
+    
+    <DefaultTfms Condition="'$(HasNet10)' != 'true'">net8.0</DefaultTfms>
+    <DefaultTfms Condition="'$(HasNet10)' == 'true'">net8.0;net10.0</DefaultTfms>
+
+    <WindowsTfms Condition="'$(HasNet10)' != 'true'">net8.0-windows</WindowsTfms>
+    <WindowsTfms Condition="'$(HasNet10)' == 'true'">net8.0-windows;net10.0-windows</WindowsTfms>
+  </PropertyGroup>
+</Project>
