@@ -3,29 +3,36 @@
 name: Sync All Tools to Release
 
 on:
+  # workflow_run=>監聽其他workflows
   workflow_run:
-    workflows: ["NuGet Publish"] # 對應 NugetPublish.yml 的 name
+    # workflows=>定義監聽目標，對應 NugetPublish.yml 的 name
+    workflows: ["NuGet Publish"]
+    # types=>定義觸發條件
     types:
       - completed
-  workflow_dispatch: # 保留手動觸發功能
+  # workflow_dispatch=>保留手動觸發功能
+  workflow_dispatch:
 
 jobs:
   sync-release:
     # 只有當前一個 workflow 執行成功時才跑
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    # 指定執行所在的作業系統環境為 Windows 的最新版本
     runs-on: windows-latest
     
+    # 指定 Job 內的所有 run 指令預設使用 Git Bash 解析
     defaults:
       run:
         shell: bash
 
     steps:
+      # 將 Git 儲存庫的程式碼拉取到執行環境中
       - name: Checkout
         uses: actions/checkout@v4
 
       # 讀取同資料夾下的設定檔
+      # $GITHUB_ENV=>GitHub Actions 提供的一種環境檔案機制，允許在不同步驟之間傳遞環境變數
       - name: Load environment variables
-        shell: bash
         run: |
           cat .github/workflows/public.env >> $GITHUB_ENV
 
@@ -33,16 +40,21 @@ jobs:
       - name: Generate Timestamp
         run: echo "RELEASE_TIME=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
 
-      # 2. 循環下載所有專案的最新版
+      # 循環下載所有專案的最新版
       - name: Download All Latest Packages
         run: |
           mkdir -p ./release_assets
           
-          # 1. 動態取得 NuGet 全域快取的正確路徑
+          # =============動態取得 NuGet 全域快取的正確路徑=============
           # 轉換 Windows 路徑 (如 C:\...) 為 Bash 路徑 (如 /c/...)
+          # dotnet nuget locals global-packages --list => 列出電腦上 global-packages（存放所有下載過的 NuGet 包的路徑）
+          # awk=>拆字串，awk '{print $2}' => string.split(' ')[1]
+          # sed 's/舊文字/新文字/g' => 全域取代，s=>substitute，g=>global
+
           RAW_CACHE_PATH=$(dotnet nuget locals global-packages --list | awk '{print $2}')
           NUGET_CACHE_PATH=$(echo "/${RAW_CACHE_PATH}" | sed 's/\\/\//g' | sed 's/://g')
           echo "📂 Detected NuGet Cache at: $NUGET_CACHE_PATH"
+          # =========================================================
 
           IFS=';' read -ra ALL_PROJECTS <<< "$INCLUDE_PROJECTS"
           
@@ -52,17 +64,22 @@ jobs:
 
             echo "------------------------------------------"
             
-            # 1. 組裝完整的 Package ID
+            # =============組裝完整的 Package ID=======================
             FULL_PKG_NAME="SeanTool.CSharp.$proj"
             echo "📥 Fetching: $FULL_PKG_NAME"
+            # =========================================================
             
             mkdir -p "temp_fetch"
             cd "temp_fetch"
             
+            # =============動態產生 .csproj 專案檔======================
             # 強制關閉此目錄的 CPM，阻斷向上層繼承與修改
             # 將 TargetFramework 設為 net10.0-windows，使其能向下相容 .net8, .net10 以及所有 -windows 的套件
-            echo '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup></Project>' > temp_fetch.csproj
 
+            echo '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup></Project>' > temp_fetch.csproj
+            # =========================================================
+
+            # =============建立 NuGet 配置檔============================
             dotnet new nugetconfig
             dotnet nuget add source "$GITHUB_NUGET_SOURCE" \
               --name github \
@@ -70,15 +87,23 @@ jobs:
               --password "${{ secrets.GITHUB_TOKEN }}" \
               --store-password-in-clear-text \
               --configfile nuget.config
+            # =========================================================
             
-            # 2. 使用完整名稱下載套件
+            # =============使用完整名稱下載套件==========================
+            # 會將目標套件的最新版本 (*) 拉取到本機的 NuGet 全域快取資料夾中
+
             dotnet add package "$FULL_PKG_NAME" --version "*"
             cd ..
+            # =========================================================
 
-            # 3. 轉小寫以匹配 NuGet 資料夾命名規則 (必須包含前綴)
+            # =============轉小寫以匹配 NuGet 資料夾命名規則=============
+            # NuGet 存放快取時強制使用全小寫命名
+
             PROJ_LOWER=$(echo "$FULL_PKG_NAME" | tr '[:upper:]' '[:lower:]')
             TARGET_PATH="$NUGET_CACHE_PATH$PROJ_LOWER"
+            # =========================================================
             
+            # =============從快取資料夾複製 .nupkg 到 Release Assets=====
             echo "🔍 Searching in: $TARGET_PATH"
 
             if [ -d "$TARGET_PATH" ]; then
@@ -87,7 +112,8 @@ jobs:
             else
               echo "❌ Cannot find cache folder for $PROJ_LOWER"
             fi
-            
+            # =========================================================
+
             rm -rf "temp_fetch"
           done
 
@@ -96,9 +122,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "latest-tools"
-          name: "Latest Tool Suite (All-in-One)"
+          name: "Latest Tools Nupkg"
           body: |
-            ## 所有工具最新版本彙整
+            ## 所有工具最新版本
             此 Release 由系統自動更新，包含所有工具專案的最新 `.nupkg` 檔。
             更新時間: ${{ env.RELEASE_TIME }} (UTC)
           files: ./release_assets/*.nupkg
