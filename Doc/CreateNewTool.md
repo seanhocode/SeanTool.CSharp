@@ -9,22 +9,17 @@
 3. 於該Tool專案的.csproj新增以下metadata設定
     - 
     ```csproj=
-        <!--修改--> 
-        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-        <!--新增--> 
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <PackageId>SeanTool.CSharp.[ToolName]</PackageId>
-        <Version>[Version]</Version>
-        <Authors>Sean Ho</Authors>
-        <Description>[ToolName]</Description>
-        <PackageTags>tool;zip;net8;net10</PackageTags>
-        <PackageProjectUrl>https://github.com/seanhocode/SeanTool.CSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/seanhocode/SeanTool.CSharp.git</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
+        <PropertyGroup>
+            <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
+            <PackageId>SeanTool.CSharp.SqlTool</PackageId>
+            <Version>0.0.3</Version>
+            <Description>SqlTool</Description>
+            <PackageTags>tool;sql;net8;net10</PackageTags>
+        </PropertyGroup>
     ```
     - ![](./image/CreateNewTool/csprojSetting.png)
 4. 設定自動部屬
-    - 將新Tool名稱加入``.github\workflows\NugetPublish.yml``的``INCLUDE_PROJECTS``
-    - ![](./image/CreateNewTool/ymlSetting.png)
+    - 將新Tool名稱加入``.github\workflows\config.env``的``INCLUDE_PROJECTS``
+    - ![](./image/CreateNewTool/envSetting.png)
 5. 命名空間設定為``SeanTool.CSharp``
     - ![](./image/CreateNewTool/NameSpaceSetting.png)

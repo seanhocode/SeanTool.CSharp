@@ -1,0 +1,107 @@
+# secrets.GITHUB_TOKEN 在 push 和 release 時都需要相應權限，需確認 Repo 的 Settings > Actions > General > Workflow permissions 是 Read and write
+
+name: Sync All Tools to Release
+
+on:
+  workflow_run:
+    workflows: ["NuGet Publish"] # 對應 NugetPublish.yml 的 name
+    types:
+      - completed
+  workflow_dispatch: # 保留手動觸發功能
+
+jobs:
+  sync-release:
+    # 只有當前一個 workflow 執行成功時才跑
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 讀取同資料夾下的設定檔
+      - name: Load environment variables
+        shell: bash
+        run: |
+          cat .github/workflows/public.env >> $GITHUB_ENV
+
+      # 建立時間戳記供 Release 使用
+      - name: Generate Timestamp
+        run: echo "RELEASE_TIME=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
+      # 2. 循環下載所有專案的最新版
+      - name: Download All Latest Packages
+        run: |
+          mkdir -p ./release_assets
+          
+          # 1. 動態取得 NuGet 全域快取的正確路徑
+          # 轉換 Windows 路徑 (如 C:\...) 為 Bash 路徑 (如 /c/...)
+          RAW_CACHE_PATH=$(dotnet nuget locals global-packages --list | awk '{print $2}')
+          NUGET_CACHE_PATH=$(echo "/${RAW_CACHE_PATH}" | sed 's/\\/\//g' | sed 's/://g')
+          echo "📂 Detected NuGet Cache at: $NUGET_CACHE_PATH"
+
+          IFS=';' read -ra ALL_PROJECTS <<< "$INCLUDE_PROJECTS"
+          
+          for proj in "${ALL_PROJECTS[@]}"; do
+            # 濾除可能因 Windows 檔案格式殘留的 \r (Carriage Return) 字元
+            proj=$(echo "$proj" | tr -d '\r')
+
+            echo "------------------------------------------"
+            
+            # 1. 組裝完整的 Package ID
+            FULL_PKG_NAME="SeanTool.CSharp.$proj"
+            echo "📥 Fetching: $FULL_PKG_NAME"
+            
+            mkdir -p "temp_fetch"
+            cd "temp_fetch"
+            
+            # 強制關閉此目錄的 CPM，阻斷向上層繼承與修改
+            # 將 TargetFramework 設為 net10.0-windows，使其能向下相容 .net8, .net10 以及所有 -windows 的套件
+            echo '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup></Project>' > temp_fetch.csproj
+
+            dotnet new nugetconfig
+            dotnet nuget add source "$GITHUB_NUGET_SOURCE" \
+              --name github \
+              --username ${{ github.actor }} \
+              --password "${{ secrets.GITHUB_TOKEN }}" \
+              --store-password-in-clear-text \
+              --configfile nuget.config
+            
+            # 2. 使用完整名稱下載套件
+            dotnet add package "$FULL_PKG_NAME" --version "*"
+            cd ..
+
+            # 3. 轉小寫以匹配 NuGet 資料夾命名規則 (必須包含前綴)
+            PROJ_LOWER=$(echo "$FULL_PKG_NAME" | tr '[:upper:]' '[:lower:]')
+            TARGET_PATH="$NUGET_CACHE_PATH$PROJ_LOWER"
+            
+            echo "🔍 Searching in: $TARGET_PATH"
+
+            if [ -d "$TARGET_PATH" ]; then
+              /usr/bin/find "$TARGET_PATH" -name "*.nupkg" -exec cp {} ./release_assets/ \;
+              echo "✅ Successfully collected $FULL_PKG_NAME"
+            else
+              echo "❌ Cannot find cache folder for $PROJ_LOWER"
+            fi
+            
+            rm -rf "temp_fetch"
+          done
+
+      # 3. 更新 GitHub Release
+      - name: Update GitHub Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "latest-tools"
+          name: "Latest Tool Suite (All-in-One)"
+          body: |
+            ## 所有工具最新版本彙整
+            此 Release 由系統自動更新，包含所有工具專案的最新 `.nupkg` 檔。
+            更新時間: ${{ env.RELEASE_TIME }} (UTC)
+          files: ./release_assets/*.nupkg
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

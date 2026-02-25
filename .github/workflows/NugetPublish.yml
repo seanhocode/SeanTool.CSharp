@@ -1,3 +1,5 @@
+# secrets.GITHUB_TOKEN 在 push 和 release 時都需要相應權限，需確認 Repo 的 Settings > Actions > General > Workflow permissions 是 Read and write
+
 name: NuGet Publish
 
 on:
@@ -5,14 +7,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-env:
-  # 要發布到 NuGet 的專案名稱（不要附 .csproj）
-  # 用分號區隔，可設定多個
-  INCLUDE_PROJECTS: "FileTool;JsonTool;ProcessTool;XMLTool;ZipTool;FormControlTool;ApiTool;SqlTool;WPFTool"
-
-  # GitHub Packages Feed URL
-  # 固定格式：https://nuget.pkg.github.com/GitHub使用者名稱/index.json
-  GITHUB_NUGET_SOURCE: "https://nuget.pkg.github.com/seanhocode/index.json"
 
 jobs:
   publish:
@@ -35,6 +29,12 @@ jobs:
         with:
           fetch-depth: 0   # 要完整 diff
 
+      # 讀取同資料夾下的設定檔
+      - name: Load environment variables
+        shell: bash
+        run: |
+          cat .github/workflows/public.env >> $GITHUB_ENV
+
       # 安裝 .NET SDK，用於 restore/build/publish
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -50,10 +50,9 @@ jobs:
       - name: Get changed files
         id: diff
         run: |
-          git fetch origin main --depth=2
-          git diff --name-only HEAD~1 HEAD > diff.txt
-
-          echo "Changed files:"
+          # 取得與 main 分支的差異，或是與前一個 commit 的差異
+          git diff --name-only ${{ github.event.before }} ${{ github.event.after }} > diff.txt || git diff --name-only HEAD~1 HEAD > diff.txt
+          echo "--- Changed files ---"
           cat diff.txt
 
       # ---------------------------------------------------------
@@ -61,6 +60,7 @@ jobs:
       # ---------------------------------------------------------
       - name: Detect Changed Projects
         id: detect
+        # IFS=';' => string.split(';')，read -ra => 讀取成陣列(-r：代表 Raw。防止反斜線（\）被當作轉義字元處理)
         run: |
           IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
           CHANGED=""
@@ -76,6 +76,7 @@ jobs:
           echo "changed_projects=$CHANGED" >> $GITHUB_OUTPUT
 
       - name: Skip if no tool changed
+        # steps.detect.outputs.changed_projects => 指向前一個步驟（id: detect）產生的輸出結果
         if: ${{ steps.detect.outputs.changed_projects == '' }}
         run: |
           echo "🚫 No Tool project changed. Skip."
@@ -130,15 +131,15 @@ jobs:
             --store-password-in-clear-text \
             "$GITHUB_NUGET_SOURCE"
 
+# secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權
+# 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
+# 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
       - name: Publish to GitHub Packages
         run: |
           shopt -s nullglob
           for pkg in ./nupkg/*.nupkg; do
             echo "🚀 Publishing: $pkg"
 
-            # secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權
-            # 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
-            # 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
             dotnet nuget push "$pkg" \
               --api-key "${{ secrets.GITHUB_TOKEN }}" \
               --source github \
