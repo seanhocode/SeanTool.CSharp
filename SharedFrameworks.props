@@ -1,0 +1,17 @@
+<Project>
+    <PropertyGroup>
+        <BaseTfm>net8.0</BaseTfm>
+
+        <_SafeSdkVersion>$(NETCoreSdkVersion)</_SafeSdkVersion>
+        <_SafeSdkVersion Condition="'$(_SafeSdkVersion)' == ''">8.0.0</_SafeSdkVersion>
+
+        <IsNet10Supported>false</IsNet10Supported>
+        <IsNet10Supported Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(_SafeSdkVersion)', '10.0'))">true</IsNet10Supported>
+
+        <DefaultTfms>$(BaseTfm)</DefaultTfms>
+        <DefaultTfms Condition="'$(IsNet10Supported)' == 'true'">$(DefaultTfms);net10.0</DefaultTfms>
+
+        <WindowsTfms>$(BaseTfm)-windows</WindowsTfms>
+        <WindowsTfms Condition="'$(IsNet10Supported)' == 'true'">$(WindowsTfms);net10.0-windows</WindowsTfms>
+    </PropertyGroup>
+</Project>

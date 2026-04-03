@@ -1,0 +1,13 @@
+<Project>
+    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Test'))">
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Test')) 
+                        AND '$(MSBuildProjectName)' != 'WPFTool.Test' 
+                        AND '$(MSBuildProjectName)' != 'FormControlTool.Test'">
+        <Using Include="Xunit" />
+    </ItemGroup>
+</Project>

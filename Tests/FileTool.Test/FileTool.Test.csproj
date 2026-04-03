@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('SharedFrameworks.props'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Testing.props'))" />
+  
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
   </PropertyGroup>

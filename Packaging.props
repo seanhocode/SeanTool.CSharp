@@ -1,0 +1,9 @@
+<Project>
+    <PropertyGroup>
+    <Authors>Sean Ho</Authors>
+    <PackageProjectUrl>https://github.com/seanhocode/SeanTool.CSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/seanhocode/SeanTool.CSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+</Project>

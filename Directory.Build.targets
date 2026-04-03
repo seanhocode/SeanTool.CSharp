@@ -1,0 +1,10 @@
+<Project>
+  <Target Name="DebugTfms" BeforeTargets="Build">    
+    <Message Importance="high" Text="--- Debug Info for $(MSBuildProjectName) ---" />    
+    <Message Importance="high" Text="NETCoreSdkVersion: $(NETCoreSdkVersion)" />    
+    <Message Importance="high" Text="IsNet10Supported: $(IsNet10Supported)" />    
+    <Message Importance="high" Text="DefaultTfms: $(DefaultTfms)" />    
+    <Message Importance="high" Text="Final TargetFrameworks: $(TargetFrameworks)" />    
+    <Message Importance="high" Text="MSBuildSDKsPath: $(MSBuildSDKsPath)" />  
+  </Target>
+</Project>

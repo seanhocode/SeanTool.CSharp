@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('SharedFrameworks.props'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Packaging.props'))" />
+  
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.XMLTool</PackageId>
