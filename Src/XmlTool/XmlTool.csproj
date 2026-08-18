@@ -5,7 +5,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
     <PackageId>SeanTool.CSharp.XmlTool</PackageId>
-    <Version>0.0.4</Version>
+    <Version>0.0.0</Version>
     <Description>XmlTool</Description>
     <PackageTags>tool;xml;net8;net10</PackageTags>
   </PropertyGroup>
