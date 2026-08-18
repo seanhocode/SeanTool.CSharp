@@ -2,7 +2,7 @@
 
 namespace SeanTool.CSharp
 {
-    public static class XMLTool
+    public static class XmlTool
     {
         /// <summary>
         /// 從byte陣列讀取並載入XML文件

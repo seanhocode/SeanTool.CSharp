@@ -20,6 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Src\XMLTool\XMLTool.csproj" />
+    <ProjectReference Include="..\..\Src\XmlTool\XmlTool.csproj" />
   </ItemGroup>
 </Project>

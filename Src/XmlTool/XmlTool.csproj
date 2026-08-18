@@ -4,9 +4,9 @@
   
   <PropertyGroup>
     <TargetFrameworks>$(DefaultTfms)</TargetFrameworks>
-    <PackageId>SeanTool.CSharp.XMLTool</PackageId>
+    <PackageId>SeanTool.CSharp.XmlTool</PackageId>
     <Version>0.0.4</Version>
-    <Description>XMLTool</Description>
+    <Description>XmlTool</Description>
     <PackageTags>tool;xml;net8;net10</PackageTags>
   </PropertyGroup>
 

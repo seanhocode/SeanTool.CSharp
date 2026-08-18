@@ -17,9 +17,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZipTool", "Src\ZipTool\ZipT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZipTool.Test", "Tests\ZipTool.Test\ZipTool.Test.csproj", "{66002264-66EB-462D-B326-8ABFF9762275}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLTool", "Src\XMLTool\XMLTool.csproj", "{7557F428-4AAA-4E02-841D-63E3E002C49B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XmlTool", "Src\XmlTool\XmlTool.csproj", "{7557F428-4AAA-4E02-841D-63E3E002C49B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLTool.Test", "Tests\XMLTool.Test\XMLTool.Test.csproj", "{83610638-5CA4-4A9F-8B5A-6B57AD7503E0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XmlTool.Test", "Tests\XmlTool.Test\XmlTool.Test.csproj", "{83610638-5CA4-4A9F-8B5A-6B57AD7503E0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonTool", "Src\JsonTool\JsonTool.csproj", "{3D832C33-0C00-45C0-8FE7-79AB3609C1DA}"
 EndProject
