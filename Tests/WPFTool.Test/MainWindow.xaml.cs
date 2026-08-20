@@ -11,6 +11,7 @@ namespace SeanTool.CSharp.WPF.Test
     {
         // 1. 這是我們要編輯的測試物件
         public Person _Person { get; set; }
+        private DynamicDataGridTestWindow? _dataGridWindow;
 
 
         public MainWindow()
@@ -43,9 +44,24 @@ namespace SeanTool.CSharp.WPF.Test
 
         private void ShowDynamicDataGrid(object sender, RoutedEventArgs e)
         {
-            Window editorWindow = new DynamicDataGridTestWindow();
+            if (_dataGridWindow is null)
+            {
+                _dataGridWindow = new DynamicDataGridTestWindow();
+                _dataGridWindow.Closed += DataGridWindowClosed;
+            }
 
-            editorWindow.ShowDialog();
+            _dataGridWindow.Show();
+            _dataGridWindow.Activate();
+        }
+
+        private void DataGridWindowClosed(object? sender, EventArgs e)
+        {
+            if (sender is DynamicDataGridTestWindow window)
+            {
+                window.Closed -= DataGridWindowClosed;
+            }
+
+            _dataGridWindow = null;
         }
     }
 }

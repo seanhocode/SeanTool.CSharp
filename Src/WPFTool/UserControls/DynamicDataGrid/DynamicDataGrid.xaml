@@ -4,19 +4,57 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:SeanTool.CSharp.WPF"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800" Background="White">
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="800"
+             VerticalAlignment="Stretch"
+             MinHeight="0"
+             Background="White">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <WrapPanel Grid.Row="0" Margin="4">
+            <Button x:Name="AddButton"
+                Content="新增"
+                Padding="12,2"
+                Click="AddItem" />
+            <TextBlock Text="排序欄位" VerticalAlignment="Center" />
+            <ComboBox x:Name="SortColumnComboBox"
+                  Width="140"
+                  Margin="16,0,0,0"
+                  DisplayMemberPath="Header"
+                  SelectedValuePath="BindingPath"
+                  SelectionChanged="SortColumnChanged" />
+            <CheckBox x:Name="SortDescendingCheckBox"
+                  Content="降冪"
+                  Margin="4,2,0,0"
+                  Checked="SortChanged"
+                  Unchecked="SortChanged" />
+                        <Button Content="清除所有篩選"
+                                        Margin="16,0,0,0"
+                                        Padding="12,2"
+                                        Click="ClearFilter" />
+            <TextBlock Text="顯示勾選欄" VerticalAlignment="Center" Margin="16,0,4,0" />
+            <CheckBox IsChecked="{Binding ShowCheckBox, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                      VerticalAlignment="Center" />
+        </WrapPanel>
+
         <DataGrid x:Name="MainDataGrid"
+              Grid.Row="1"
+                MinHeight="0"
+                VerticalAlignment="Stretch"
                   AutoGenerateColumns="False"
-                  CanUserAddRows="True"
-                  CanUserDeleteRows="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
                   EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
                   ScrollViewer.CanContentScroll="True"
                   VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling"
-                  VirtualizingPanel.ScrollUnit="Pixel"
-                  IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                  VirtualizingPanel.ScrollUnit="Pixel">
         </DataGrid>
     </Grid>
 </UserControl>

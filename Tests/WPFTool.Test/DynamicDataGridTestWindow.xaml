@@ -9,15 +9,16 @@
         Title="DynamicDataGridTestWindow" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="300"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <WPFTool:DynamicDataGrid Grid.Row="0"
+        <WPFTool:DynamicDataGrid x:Name="PersonDataGrid" Grid.Row="0"
                 DataSource="{Binding PersonList}"
-                ColumnDefinitions="{Binding ColumnDefinitions}"
-                IsReadOnly="False"/>
+            ColumnDefinitions="{Binding ColumnDefinitions}"
+            ShowCheckBox="True" />
         <Button Grid.Row="1" Click="CheckDataValue" Height="30" Margin="5">CheckValue</Button>
+        <Button Grid.Row="2" Click="ShowSelectedItems" Height="30" Margin="5">顯示選取項目</Button>
     </Grid>
 </Window>

@@ -27,9 +27,17 @@ namespace SeanTool.CSharp.WPF.Test
         private void LoadDynamicDataGridTestData()
         {
             PersonList = new ObservableCollection<Person>();
-            for (int i = 0; i < 100; i++)
+            var random = new Random(20260819);
+            for (int i = 0; i < 100_000; i++)
             {
-                PersonList.Add(new Person { ID = i, Name = $"User {i}", BirthDate = DateTime.Now });
+                PersonList.Add(new Person
+                {
+                    ID = i,
+                    Name = $"User {random.Next(1, 1_000_000):D6}",
+                    Age = (short)random.Next(18, 80),
+                    BirthDate = DateTime.Today.AddDays(-random.Next(0, 20_000)),
+                    IsEnabled = random.Next(2) == 1
+                });
             }
 
             // 2. 定義欄位
@@ -46,6 +54,17 @@ namespace SeanTool.CSharp.WPF.Test
             ObservableCollection<Person> personList = PersonList;
             // 此處下中斷點檢查 person 內容
             MessageBox.Show(personList.Count().ToString());
+        }
+
+        private void ShowSelectedItems(object sender, RoutedEventArgs e)
+        {
+            string names = string.Join(Environment.NewLine,
+                PersonDataGrid.SelectedItems
+                    .OfType<Person>()
+                    .Select(person => person.Name));
+
+            MessageBox.Show(string.IsNullOrWhiteSpace(names) ? "目前沒有勾選項目。" : names,
+                "選取項目名稱");
         }
     }
 }

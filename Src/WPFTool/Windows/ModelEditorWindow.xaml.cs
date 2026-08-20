@@ -25,6 +25,9 @@ namespace SeanTool.CSharp.WPF
         {
             InitializeComponent();
 
+            Editor.Saved += OnEditorSaved;
+            Editor.Canceled += OnEditorCanceled;
+
             // 設定要編輯的物件
             TargetObject = targetModel;
 
@@ -33,6 +36,18 @@ namespace SeanTool.CSharp.WPF
             {
                 Title = $"編輯: {targetModel.GetType().Name}";
             }
+        }
+
+        private void OnEditorSaved(object? sender, EventArgs e)
+        {
+            DialogResult = true;
+            Close();
+        }
+
+        private void OnEditorCanceled(object? sender, EventArgs e)
+        {
+            DialogResult = false;
+            Close();
         }
     }
 }

@@ -91,22 +91,7 @@
             </DataTemplate>
 
             <DataTemplate x:Key="DateTimeTemplate">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="80"/>
-                    </Grid.ColumnDefinitions>
-
-                    <DatePicker SelectedDate="{Binding DatePart}" 
-                                VerticalAlignment="Center"/>
-
-                    <!--UpdateSourceTrigger: 用來調整更新資料來源的時機-->
-                    <TextBox Grid.Column="1" 
-                             Text="{Binding TimePart, UpdateSourceTrigger=LostFocus}" 
-                             Margin="5,0,0,0"
-                             ToolTip="格式: HH:mm:ss"
-                             VerticalAlignment="Center"/>
-                </Grid>
+                <local:DataTimePicker SelectedDateTime="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </DataTemplate>
 
             <DataTemplate x:Key="PathTemplate">
@@ -117,7 +102,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBox Text="{Binding Value}"/>
                     <Button Grid.Column="1" Content="..." 
-                            Command="{Binding DataContext.BrowseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                            Command="{Binding ViewModel.BrowseCommand, RelativeSource={RelativeSource AncestorType=local:ModelEditor}}" 
                             CommandParameter="{Binding}"/>
                 </Grid>
             </DataTemplate>
@@ -138,7 +123,7 @@
                     <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" VerticalAlignment="Center"/>
 
                     <Button Grid.Column="1" Content="..." Margin="5,0,0,0"
-                            Command="{Binding DataContext.EditObjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Command="{Binding ViewModel.EditObjectCommand, RelativeSource={RelativeSource AncestorType=local:ModelEditor}}"
                             CommandParameter="{Binding}"/>
                 </Grid>
             </DataTemplate>
@@ -162,7 +147,7 @@
                     RelativeSource: 透過控件之間的相對層級來尋找控件
                     AncestorType: 從目前的 UI 元件開始，沿著視覺樹（Visual Tree）往上層找，忽略其他類型，直到看到『這種類型』的控制項為止
                     -->
-                    <ContentControl Grid.Column="1" Content="{Binding}" IsEnabled="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <ContentControl Grid.Column="1" Content="{Binding}" IsEnabled="{Binding CanEdit}">
                         <ContentControl.Style>
                             <Style TargetType="ContentControl">
                                 <Setter Property="ContentTemplate" Value="{StaticResource TextTemplate}"/>
@@ -194,12 +179,29 @@
                         </ContentControl.Style>
                     </ContentControl>
 
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding ErrorMessage}"
+                               Foreground="Firebrick"
+                               Margin="0,28,0,0"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
                 </Grid>
             </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid DataContext="{Binding ViewModel, RelativeSource={RelativeSource AncestorType=local:ModelEditor}}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -213,7 +215,10 @@
         <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Background="#F5F5F5">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
                 <Button Content="儲存 (Save)" Width="100" Height="30" Margin="5,0"
-                        Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" Cursor="Hand"/>
+                    Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" Cursor="Hand"
+                    IsEnabled="{Binding IsEditing}"/>
+                <Button Content="取消 (Cancel)" Width="100" Height="30" Margin="5,0"
+                    Command="{Binding CancelCommand}" Cursor="Hand" IsEnabled="{Binding IsEditing}"/>
 
             </StackPanel>
         </Border>

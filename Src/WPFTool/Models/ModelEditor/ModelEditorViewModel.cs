@@ -16,7 +16,15 @@ namespace SeanTool.CSharp.WPF
         public bool IsEditing
         {
             get => _isEditing;
-            set { _isEditing = value; OnPropertyChanged(); }
+            set
+            {
+                _isEditing = value;
+                foreach (var property in Properties)
+                {
+                    property.IsEditing = value;
+                }
+                OnPropertyChanged();
+            }
         }
 
         // 檔案瀏覽命令
@@ -28,43 +36,92 @@ namespace SeanTool.CSharp.WPF
         // 儲存命令
         public ICommand SaveCommand { get; }
 
-        // 如果你是用在彈出視窗，可能需要一個 Action 來關閉視窗
-        private readonly Action _closeAction;
+        public ICommand CancelCommand { get; }
 
-        public ModelEditorViewModel(object model, Action closeAction = null)
+        private readonly Action? _savedAction;
+        private readonly Action? _canceledAction;
+
+        public ModelEditorViewModel(object model, Action? savedAction = null, Action? canceledAction = null)
         {
-            _closeAction = closeAction;
+            _savedAction = savedAction;
+            _canceledAction = canceledAction;
 
             BrowseCommand = new RelayCommand<PropertyItem>(OnBrowseFile);
             EditObjectCommand = new RelayCommand<PropertyItem>(OnEditObject);
             SaveCommand = new RelayCommand<object>(OnSave);
+            CancelCommand = new RelayCommand<object>(OnCancel);
 
             Properties = new ObservableCollection<PropertyItem>();
             if (model == null) return;
 
             // 掃描屬性
-            var props = model.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var props = model.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.CanRead && property.GetIndexParameters().Length == 0)
+                .OrderBy(property => property.Name, StringComparer.Ordinal);
             foreach (PropertyInfo p in props)
             {
-                if (!p.CanRead || !p.CanWrite) continue;
-
-                // 建立包裝器並加入清單
-                Properties.Add(new PropertyItem(model, p));
+                var propertyItem = new PropertyItem(model, p)
+                {
+                    IsEditing = IsEditing
+                };
+                Properties.Add(propertyItem);
             }
         }
 
         private void OnSave(object parameter)
         {
-            // 跑迴圈，把所有暫存的值寫入真正的 Model
-            foreach (var item in Properties)
+            if (Properties.Any(item => !item.Validate()))
             {
-                item.ApplyChange();
+                MessageBox.Show("請先修正欄位錯誤後再儲存。");
+                return;
+            }
+
+            var appliedItems = new List<PropertyItem>();
+            foreach (var item in Properties.Where(item => !item.IsReadOnly))
+            {
+                try
+                {
+                    item.ApplyChange();
+                    appliedItems.Add(item);
+                }
+                catch (Exception ex)
+                {
+                    item.SetError(ex.Message);
+                    foreach (var appliedItem in appliedItems.AsEnumerable().Reverse())
+                    {
+                        try
+                        {
+                            appliedItem.RestoreOriginalValue();
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    MessageBox.Show("儲存失敗，已取消已寫入的欄位變更。");
+                    return;
+                }
+            }
+
+            foreach (var item in Properties.Where(item => !item.IsReadOnly))
+            {
+                item.Commit();
             }
 
             MessageBox.Show("設定已儲存！");
 
-            // 如果有設定關閉視窗的動作，就執行它
-            _closeAction?.Invoke();
+            _savedAction?.Invoke();
+        }
+
+        private void OnCancel(object parameter)
+        {
+            foreach (var item in Properties)
+            {
+                item.Reset();
+            }
+
+            _canceledAction?.Invoke();
         }
 
         private void OnBrowseFile(PropertyItem item)
@@ -108,24 +165,19 @@ namespace SeanTool.CSharp.WPF
                 return;
             }
 
-            // 用自訂的 ModelEditorWindow
-            var window = new ModelEditorWindow(item.Value)
+            var editableCopy = item.CreateEditableCopy();
+            var window = new ModelEditorWindow(editableCopy)
             {
                 // 如果想要針對屬性名稱顯示更詳細的標題
                 Title = $"編輯屬性: {item.DisplayName}",
                 Owner = Application.Current.MainWindow // (可選) 設定擁有者，讓視窗不會亂跑
             };
 
-            // 處理視窗關閉後的更新
-            // 因為 EditorModelWindow 裡面是用 DataBinding，
-            // 我們需要監聽視窗關閉事件來做最後的 Refresh
-            window.Closed += (s, e) =>
+            if (window.ShowDialog() == true)
             {
-                // 視窗關閉後，強制更新 UI 顯示 (例如 ToString 結果可能變了)
+                item.Value = editableCopy;
                 item.Refresh();
-            };
-
-            window.ShowDialog();
+            }
         }
     }
 }

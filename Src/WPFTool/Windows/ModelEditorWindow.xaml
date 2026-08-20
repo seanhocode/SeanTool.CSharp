@@ -19,6 +19,6 @@
     </Window.Resources>
 
     <Grid>
-        <local:ModelEditor TargetObject="{Binding TargetObject, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        <local:ModelEditor x:Name="Editor" TargetObject="{Binding TargetObject, RelativeSource={RelativeSource AncestorType=Window}}"/>
     </Grid>
 </Window>

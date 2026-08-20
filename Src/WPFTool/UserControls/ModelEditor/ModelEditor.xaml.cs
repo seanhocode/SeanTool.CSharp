@@ -8,6 +8,9 @@ namespace SeanTool.CSharp.WPF
     /// </summary>
     public partial class ModelEditor : UserControl
     {
+        public event EventHandler? Saved;
+        public event EventHandler? Canceled;
+
         public ModelEditor()
         {
             InitializeComponent();
@@ -62,6 +65,31 @@ namespace SeanTool.CSharp.WPF
             set { SetValue(TargetObjectProperty, value); }
         }
 
+        public static readonly DependencyProperty IsEditingProperty =
+            DependencyProperty.Register(
+                nameof(IsEditing),
+                typeof(bool),
+                typeof(ModelEditor),
+                new PropertyMetadata(true, OnIsEditingChanged));
+
+        public bool IsEditing
+        {
+            get { return (bool)GetValue(IsEditingProperty); }
+            set { SetValue(IsEditingProperty, value); }
+        }
+
+        public static readonly DependencyProperty ViewModelProperty =
+            DependencyProperty.Register(
+                nameof(ViewModel),
+                typeof(ModelEditorViewModel),
+                typeof(ModelEditor));
+
+        public ModelEditorViewModel? ViewModel
+        {
+            get { return (ModelEditorViewModel?)GetValue(ViewModelProperty); }
+            private set { SetValue(ViewModelProperty, value); }
+        }
+
         /**
          * 若 (this.DataContext as ModelEditorViewModel).IsEditing = IsEditing;
          * 則只有 CoerceTargetObject 會被觸發
@@ -74,11 +102,31 @@ namespace SeanTool.CSharp.WPF
         private static void OnTargetObjectChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             ModelEditor? view = d as ModelEditor;
-            if (view != null && e.NewValue != null)
+            if (view == null)
             {
-                // 當外部給了新的 Model，我們內部就 new 一個 ViewModel
-                // 並設為這個 UserControl 的 DataContext
-                view.DataContext = new ModelEditorViewModel(e.NewValue);
+                return;
+            }
+
+            if (e.NewValue == null)
+            {
+                view.ViewModel = null;
+                return;
+            }
+
+            view.ViewModel = new ModelEditorViewModel(
+                e.NewValue,
+                () => view.Saved?.Invoke(view, EventArgs.Empty),
+                () => view.Canceled?.Invoke(view, EventArgs.Empty))
+            {
+                IsEditing = view.IsEditing
+            };
+        }
+
+        private static void OnIsEditingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ModelEditor view && view.ViewModel != null)
+            {
+                view.ViewModel.IsEditing = (bool)e.NewValue;
             }
         }
 
