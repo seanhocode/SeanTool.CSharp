@@ -12,12 +12,12 @@
 
     <!--Style 透過 TargetType 屬性來設定目標的類別，用 Setter 來設定目標的屬性-->
     <Style TargetType="Button">
-        <Setter Property="Background" Value="#F0F0F0"/>
-        <Setter Property="Foreground" Value="#333333"/>
-        <Setter Property="BorderBrush" Value="#CCCCCC"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Subtle}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="10,5"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -37,16 +37,16 @@
                     <ControlTemplate.Triggers>
                         <!--設定 Trigger 動態改變屬性值-->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E0E0E0"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="#999999"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Control.Hover}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Brush.Text.Muted}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#D0D0D0"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Control.Pressed}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#F5F5F5"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="#DDDDDD"/>
-                            <Setter Property="Foreground" Value="#AAAAAA"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Control.Disabled}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -56,8 +56,8 @@
 
     <!--設定 BaseOn 繼承其他的Style-->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="#0078D4"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.Accent}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Template">
@@ -70,13 +70,13 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#0063B1"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Accent.Hover}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#004C87"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Accent.Pressed}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#CCCCCC"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Border}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

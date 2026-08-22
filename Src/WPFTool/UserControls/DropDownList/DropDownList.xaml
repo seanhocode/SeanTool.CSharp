@@ -1,0 +1,165 @@
+<UserControl x:Class="SeanTool.CSharp.WPFTool.UserControls.DropDownList.DropDownList"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.DropDownList"
+             xmlns:model="clr-namespace:SeanTool.CSharp.WPFTool.Models.DropDownList"
+             MinWidth="160"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/WPFTool;component/Styles/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                根因：WPF-UI 套件內建的 ComboBox 樣式，
+                下拉清單的捲動容器是它自己的 DynamicScrollViewer(做展開位移動畫用)，範本裡從未把
+                CanContentScroll 綁出來，永遠是 False；CanContentScroll=False 代表 WPF 量測 ItemsPresenter
+                時用的是「無限高」，等同強迫一次生成全部項目容器——不管 ItemsPanel 換成什麼 Panel 都沒用，
+                因為問題出在量測階段，不是 Panel 種類。這才是萬筆資料一開下拉就卡死的真正原因，
+                跟 FilterQuery/搜尋邏輯無關。
+                這裡只在本控制項內局部覆寫一份簡化樣式：拿掉動畫用的 DynamicScrollViewer，換回標準
+                ScrollViewer(CanContentScroll=True) + VirtualizingStackPanel，讓 WPF 原生的容器虛擬化/
+                回收機制真正生效；不影響其他地方使用的 ComboBox。顏色沿用 Theme.xaml 已載入的 WPF-UI
+                資源鍵(ComboBoxBackground 等)，不引用其他未被合併的樣式檔。
+                Popup 的 x:Name 必須是 "Popup"(大寫)：DropDownList.xaml.cs 的 OnLoaded 用
+                FindName("Popup", ...) 找它來關閉 StaysOpen，維持「點外部空白處關閉」的行為。
+            -->
+            <Style x:Key="DropDownComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Background" Value="{DynamicResource ComboBoxBackground}" />
+                <Setter Property="Foreground" Value="{DynamicResource ComboBoxForeground}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="8,4" />
+                <Setter Property="MinHeight" Value="30" />
+                <Setter Property="ItemsPanel">
+                    <Setter.Value>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel VirtualizingPanel.IsVirtualizing="True"
+                                                     VirtualizingPanel.VirtualizationMode="Recycling" />
+                        </ItemsPanelTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border x:Name="border"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="6">
+                                    <Grid>
+                                        <TextBox x:Name="PART_EditableTextBox"
+                                                 Margin="{TemplateBinding Padding}"
+                                                 VerticalAlignment="Center"
+                                                 Background="Transparent"
+                                                 BorderThickness="0"
+                                                 Foreground="{TemplateBinding Foreground}" />
+                                        <ToggleButton x:Name="toggleButton"
+                                                      Width="28"
+                                                      HorizontalAlignment="Right"
+                                                      Focusable="False"
+                                                      ClickMode="Press"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
+                                                      IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                            <Path Width="8"
+                                                  Height="5"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Fill="{DynamicResource ComboBoxDropDownGlyphForeground}"
+                                                  Data="M 0,0 L 8,0 L 4,5 Z" />
+                                        </ToggleButton>
+                                    </Grid>
+                                </Border>
+
+                                <Popup x:Name="Popup"
+                                       AllowsTransparency="True"
+                                       Focusable="False"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       Placement="Bottom"
+                                       PopupAnimation="None">
+                                    <Border MinWidth="{TemplateBinding ActualWidth}"
+                                            Margin="0,2,0,0"
+                                            Background="{DynamicResource ComboBoxDropDownBackground}"
+                                            BorderBrush="{DynamicResource ComboBoxDropDownBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6">
+                                        <!-- CanContentScroll=True 是虛擬化能生效的關鍵，見上方註解 -->
+                                        <ScrollViewer MaxHeight="300"
+                                                      CanContentScroll="True"
+                                                      VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!--
+        直接包裝內建 ComboBox，沿用它已經驗證過的開合/Popup定位/鍵盤操作，
+        本控制項只額外負責：把輸入框變成即時搜尋、以及單選/多選的選取狀態管理。
+        (做法與 DynamicDataGrid 包裝原生 DataGrid 一致，不重新刻一套 Popup/ToggleButton)
+    -->
+    <ComboBox x:Name="ComboBoxControl"
+              Style="{StaticResource DropDownComboBoxStyle}"
+              IsEditable="True"
+              IsTextSearchEnabled="False"
+              ItemsSource="{Binding ViewModel.FilteredItems, RelativeSource={RelativeSource AncestorType={x:Type local:DropDownList}}}"
+              IsDropDownOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource AncestorType={x:Type local:DropDownList}}, Mode=TwoWay}"
+              GotFocus="ComboBoxGotFocus"
+              DropDownOpened="ComboBoxDropDownOpened"
+              DropDownClosed="ComboBoxDropDownClosed"
+              LostFocus="ComboBoxLostFocus"
+              TextBoxBase.TextChanged="ComboBoxSearchTextChanged"
+              ToolTip="輸入關鍵字搜尋">
+        <ComboBox.ItemContainerStyle>
+            <Style TargetType="ComboBoxItem">
+                <!--
+                    多選模式下，不讓項目真的進入 ComboBox 原生的 IsSelected 狀態：
+                    1) WPF-UI 的 ComboBoxItem 樣式會對選取狀態播放 SymbolIcon 動畫，
+                       快速切換選取會丟出 AnimationException。
+                    2) 原生選取一定會關閉下拉，多選需要靠額外技巧強制重開，體驗也不順。
+                    改在 Preview 階段直接處理點擊、標記 Handled，讓 Selector 完全不知道這次點擊。
+                -->
+                <EventSetter Event="PreviewMouseLeftButtonUp" Handler="ComboBoxItemPreviewMouseLeftButtonUp" />
+            </Style>
+        </ComboBox.ItemContainerStyle>
+        <ComboBox.ItemTemplate>
+            <!--
+                真正的崩潰原因：這裡原本放的是 <CheckBox>，套用到 WPF-UI 全域的 CheckBox 樣式，
+                該樣式在勾選/取消時，會用 Storyboard 對圖示的 Tag 屬性播放 DoubleAnimation(繪製打勾動畫)，
+                container 被虛擬化清單快速回收/重用時就會噴 AnimationException，與 ComboBoxItem 本身無關。
+                改用「選取底色 + 左側色條」模擬 WPF-UI 原生 ComboBoxItem 選取樣式(同一組資源色票)，
+                不再使用任何會播放動畫的控制項，單選/多選視覺也完全一致。
+            -->
+            <DataTemplate DataType="{x:Type model:DropDownItemViewModel}">
+                <Grid>
+                    <Rectangle x:Name="SelectedPill"
+                               Width="3" Height="16"
+                               HorizontalAlignment="Left" VerticalAlignment="Center"
+                               RadiusX="2" RadiusY="2"
+                               Fill="{DynamicResource ComboBoxItemPillFillBrush}"
+                               Visibility="Collapsed" />
+                    <TextBlock x:Name="DisplayTextBlock"
+                               Text="{Binding DisplayText}"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center" />
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="SelectedPill" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="DisplayTextBlock" Property="Foreground" Value="{DynamicResource ComboBoxItemForegroundSelected}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ComboBox.ItemTemplate>
+    </ComboBox>
+</UserControl>

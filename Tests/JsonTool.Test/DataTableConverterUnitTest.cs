@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Text.Json;
 
-namespace SeanTool.CSharp.Test.Test
+namespace SeanTool.CSharp.JsonTool.Test
 {
     public class DataTableConverterTests
     {

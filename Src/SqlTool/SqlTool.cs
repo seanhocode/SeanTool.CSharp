@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Transactions;
 
-namespace SeanTool.CSharp
+namespace SeanTool.CSharp.SqlTool
 {
     # region Custom Attributes
     /// <summary>

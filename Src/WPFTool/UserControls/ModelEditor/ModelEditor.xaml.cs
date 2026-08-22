@@ -1,7 +1,10 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
+using SeanTool.CSharp.WPFTool.Models;
+using SeanTool.CSharp.WPFTool.Models.ModelEditor;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.UserControls.ModelEditor
 {
     /// <summary>
     /// ModelEditorView.xaml 的互動邏輯
@@ -107,19 +110,36 @@ namespace SeanTool.CSharp.WPF
                 return;
             }
 
-            if (e.NewValue == null)
+            object? model = ResolveEditTarget(e.NewValue);
+            if (model == null)
             {
                 view.ViewModel = null;
                 return;
             }
 
             view.ViewModel = new ModelEditorViewModel(
-                e.NewValue,
+                model,
                 () => view.Saved?.Invoke(view, EventArgs.Empty),
                 () => view.Canceled?.Invoke(view, EventArgs.Empty))
             {
                 IsEditing = view.IsEditing
             };
+        }
+
+        /// <summary>
+        /// 解析實際要編輯的物件
+        /// </summary>
+        /// <remarks>DataTable/DataSet 實作的是 IListSource(而非單一物件)，ModelEditor 一次只編輯一筆資料，
+        /// 故自動轉為其 DefaultView 的第一列(DataRowView)；轉換邏輯共用 <see cref="IEnumerableConverter"/>，
+        /// 與 DynamicDataGrid 一致。一般物件或已是 DataRowView 則直接使用，不做任何轉換。</remarks>
+        private static object? ResolveEditTarget(object? value)
+        {
+            if (value is not IListSource listSource)
+            {
+                return value;
+            }
+
+            return IEnumerableConverter.Convert(listSource)?.Cast<object?>().FirstOrDefault();
         }
 
         private static void OnIsEditingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

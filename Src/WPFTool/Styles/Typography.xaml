@@ -1,0 +1,12 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <FontFamily x:Key="FontFamily.Default">Segoe UI</FontFamily>
+    <sys:Double x:Key="FontSize.Small" xmlns:sys="clr-namespace:System;assembly=mscorlib">12</sys:Double>
+    <sys:Double x:Key="FontSize.Body" xmlns:sys="clr-namespace:System;assembly=mscorlib">14</sys:Double>
+    <sys:Double x:Key="FontSize.Title" xmlns:sys="clr-namespace:System;assembly=mscorlib">18</sys:Double>
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FontFamily.Default}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+    </Style>
+</ResourceDictionary>

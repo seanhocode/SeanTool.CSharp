@@ -5,7 +5,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.ApiTool.Test
 {
     public class ApiToolExtensionsTest
     {

@@ -2,7 +2,7 @@
 using System.Text;
 using System.Threading.Channels;
 
-namespace SeanTool.CSharp
+namespace SeanTool.CSharp.FileTool
 {
     public class FileTool
     {

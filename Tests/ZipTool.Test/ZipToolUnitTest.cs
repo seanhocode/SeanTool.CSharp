@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.ZipTool.Test
 {
     public class ZipToolUnitTest
     {
@@ -38,15 +38,15 @@ namespace SeanTool.CSharp.Test
                 zipPathInvalid = ".\\Data\\NotZip.txt",
                 zipPathNoExist = ".\\Data\\NoExist.zip";
 
-            // ´ú¸Õ¦Xªkªº ZIP ÀÉ®×
+            // ï¿½ï¿½ï¿½Õ¦Xï¿½kï¿½ï¿½ ZIP ï¿½É®ï¿½
             bool isValidZip = ZipTool.GetFileNameInZip(zipPathValid).Count > 0;
             Assert.True(isValidZip);
 
-            // ´ú¸Õ¤£¦Xªkªº ZIP ÀÉ®×
+            // ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½Xï¿½kï¿½ï¿½ ZIP ï¿½É®ï¿½
             IList<string> filePathList = ZipTool.GetFileNameInZip(zipPathInvalid);
             Assert.Empty(filePathList);
 
-            // ´ú¸Õ¤£¦s¦bªº ZIP ÀÉ®×
+            // ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½sï¿½bï¿½ï¿½ ZIP ï¿½É®ï¿½
             IList<string> fileListNoExist = ZipTool.GetFileNameInZip(zipPathNoExist);
             Assert.Empty(fileListNoExist);
         }

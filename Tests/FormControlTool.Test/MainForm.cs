@@ -1,6 +1,9 @@
+using SeanTool.CSharp.FormControlTool.Controls;
+using SeanTool.CSharp.FormControlTool.Forms;
+using SeanTool.CSharp.FormControlTool.Test.Models;
 using Test.Data.Models;
 
-namespace SeanTool.CSharp.Forms.Test
+namespace SeanTool.CSharp.FormControlTool.Test
 {
     public partial class MainForm : Form
     {

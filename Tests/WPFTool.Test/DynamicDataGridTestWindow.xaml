@@ -1,12 +1,13 @@
-﻿<Window x:Class="SeanTool.CSharp.WPF.Test.DynamicDataGridTestWindow"
+﻿<Window x:Class="SeanTool.CSharp.WPFTool.Test.DynamicDataGridTestWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SeanTool.CSharp.WPF.Test"
-        xmlns:WPFTool="clr-namespace:SeanTool.CSharp.WPF;assembly=WPFTool"
+        xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.Test"
+        xmlns:WPFTool="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.DynamicDataGrid;assembly=WPFTool"
         mc:Ignorable="d"
-        Title="DynamicDataGridTestWindow" Height="450" Width="800">
+        Title="DynamicDataGridTestWindow" Height="450" Width="800"
+        Background="{DynamicResource ApplicationBackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -14,10 +15,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <WPFTool:DynamicDataGrid x:Name="PersonDataGrid" Grid.Row="0"
+        <!--<WPFTool:DynamicDataGrid x:Name="PersonDataGrid" Grid.Row="0"
             DataSource="{Binding PersonList}"
             ColumnDefinitions="{Binding ColumnDefinitions}"
-            ShowCheckBox="True" Cursor="Hand" IsReadOnly="False" />
+            ShowCheckBox="True" Cursor="Hand" />-->
+
+        <WPFTool:DynamicDataGrid x:Name="PersonDataGrid" Grid.Row="0"
+            DataSource="{Binding PersonList}"
+            ActionDefinitions="{Binding ActionDefinitions}"
+            ShowCheckBox="True" Cursor="Hand" />
 
         <Button Grid.Row="1" Click="CheckDataValue" Height="30" Margin="5">CheckValue</Button>
         <Button Grid.Row="2" Click="ShowSelectedItems" Height="30" Margin="5">顯示選取項目</Button>

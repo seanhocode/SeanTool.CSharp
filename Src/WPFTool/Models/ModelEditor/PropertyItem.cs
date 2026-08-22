@@ -1,19 +1,27 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Reflection;
+using SeanTool.CSharp.WPFTool.Attributes.ModelEditor;
+using SeanTool.CSharp.WPFTool.Enums.ModelEditor;
+using SeanTool.CSharp.WPFTool.Models;
+using SeanTool.CSharp.WPFTool.Models.Fields;
+using SeanTool.CSharp.WPFTool.UserControls.DateTimePicker;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.Models.ModelEditor
 {
     public class PropertyItem : ViewModelBase
     {
         private readonly object _TargetInstance; // 原始 Model 實體
-        private readonly PropertyInfo _PropInfo; // 屬性資訊
+        private readonly FieldDescriptor _Field; // 欄位描述(共用欄位分析器產生，支援一般物件屬性與 DataTable 動態欄位)
 
         public string PropertyName { get; }
         public string DisplayName { get; }
         public EditorInputType InputType { get; private set; }
-        public bool IsReadOnly => !_PropInfo.CanWrite;
+        public bool IsReadOnly => _Field.IsReadOnly;
+
+        // 是否以可垂直展開的多行 TextBox 呈現 (由 EditorTextAreaAttribute 標記)
+        public bool IsTextArea { get; private set; }
+        public int TextAreaMinLines { get; private set; } = 4;
 
         private bool _isEditing = true;
         public bool IsEditing
@@ -52,19 +60,17 @@ namespace SeanTool.CSharp.WPF
 
         public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
-        // 建構子：透過 Reflection 初始化
-        public PropertyItem(object instance, PropertyInfo prop)
+        // 建構子：透過共用欄位分析器(FieldAnalyzer)產生的 FieldDescriptor 初始化
+        // FieldDescriptor 同時支援一般 CLR 物件屬性與 DataTable(DataRowView) 的動態欄位，故 instance 可以是任一種
+        public PropertyItem(object instance, FieldDescriptor field)
         {
             _TargetInstance = instance;
-            _PropInfo = prop;
-            PropertyName = prop.Name;
-
-            // 處理 DisplayName Attribute
-            var dispAttr = prop.GetCustomAttribute<DisplayNameAttribute>();
-            DisplayName = dispAttr != null ? dispAttr.DisplayName : prop.Name;
+            _Field = field;
+            PropertyName = field.Name;
+            DisplayName = field.DisplayName;
 
             // 初始化時，先從 Model 讀取現有的值到暫存區
-            _OriginalValue = _PropInfo.GetValue(_TargetInstance);
+            _OriginalValue = _Field.GetValue(_TargetInstance);
             _PendingValue = _OriginalValue;
 
             // 判斷 InputType (對應你原本的 CreateEditorControl 邏輯)
@@ -89,13 +95,13 @@ namespace SeanTool.CSharp.WPF
                 try
                 {
                     object? safeValue = value;
-                    Type targetType = Nullable.GetUnderlyingType(_PropInfo.PropertyType) ?? _PropInfo.PropertyType;
+                    Type targetType = _Field.NonNullableType;
 
-                    if (safeValue is string text && text.Length == 0 && Nullable.GetUnderlyingType(_PropInfo.PropertyType) != null)
+                    if (safeValue is string text && text.Length == 0 && _Field.PropertyType != targetType)
                     {
                         safeValue = null;
                     }
-                    else if (safeValue == null && targetType.IsValueType && Nullable.GetUnderlyingType(_PropInfo.PropertyType) == null)
+                    else if (safeValue == null && targetType.IsValueType && _Field.PropertyType == targetType)
                     {
                         throw new InvalidOperationException($"{DisplayName} 不可為空值。");
                     }
@@ -136,7 +142,7 @@ namespace SeanTool.CSharp.WPF
             {
                 if (value == null)
                 {
-                    if (Nullable.GetUnderlyingType(_PropInfo.PropertyType) != null)
+                    if (_Field.PropertyType != _Field.NonNullableType)
                     {
                         Value = null;
                     }
@@ -162,7 +168,7 @@ namespace SeanTool.CSharp.WPF
             }
             set
             {
-                if (!DataTimePicker.TryParseTime(value, out TimeSpan time))
+                if (!DateTimePicker.TryParseTime(value, out TimeSpan time))
                 {
                     SetError("時間格式錯誤，請輸入 HH:mm 或 HH:mm:ss。");
                     return;
@@ -190,12 +196,12 @@ namespace SeanTool.CSharp.WPF
                 return;
             }
 
-            _PropInfo.SetValue(_TargetInstance, _PendingValue);
+            _Field.SetValue(_TargetInstance, _PendingValue);
         }
 
         public void RestoreOriginalValue()
         {
-            _PropInfo.SetValue(_TargetInstance, _OriginalValue);
+            _Field.SetValue(_TargetInstance, _OriginalValue);
         }
 
         public void Commit()
@@ -270,9 +276,9 @@ namespace SeanTool.CSharp.WPF
 
         private void DetermineInputType()
         {
-            Type type = Nullable.GetUnderlyingType(_PropInfo.PropertyType) ?? _PropInfo.PropertyType;
+            Type type = _Field.NonNullableType;
 
-            var pathAttr = _PropInfo.GetCustomAttribute<EditorPathAttribute>();
+            var pathAttr = _Field.GetAttribute<EditorPathAttribute>();
             if (pathAttr != null)
             {
                 InputType = pathAttr.Type == PathType.File
@@ -308,6 +314,13 @@ namespace SeanTool.CSharp.WPF
             else
             {
                 InputType = EditorInputType.Text;
+            }
+
+            var textAreaAttr = _Field.GetAttribute<EditorTextAreaAttribute>();
+            if (textAreaAttr != null && InputType == EditorInputType.Text)
+            {
+                IsTextArea = true;
+                TextAreaMinLines = textAreaAttr.MinLines;
             }
         }
 

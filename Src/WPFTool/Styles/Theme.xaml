@@ -1,0 +1,50 @@
+<!--Local-->
+<!--<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Colors.xaml" />
+        <ResourceDictionary Source="Typography.xaml" />
+        <ResourceDictionary Source="ButtonStyles.xaml" />
+        <ResourceDictionary Source="ComboBoxStyles.xaml" />
+        <ResourceDictionary Source="TextBoxStyles.xaml" />
+        <ResourceDictionary Source="CheckBoxStyles.xaml" />
+        <ResourceDictionary Source="ContainerStyles.xaml" />
+        <ResourceDictionary Source="DataGridStyles.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    --><!-- UseLayoutRounding is inherited by descendants, so setting it on Window fixes blurry 1px borders/rounded corners app-wide --><!--
+    <Style TargetType="Window">
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+</ResourceDictionary>-->
+
+<!--WPFUI-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ui:ThemesDictionary Theme="Dark" />
+        <!--<ui:ThemesDictionary Theme="Light" />-->
+        <!--<ui:ThemesDictionary Theme="Dark" />-->
+        <ui:ControlsDictionary />
+        <!-- 覆蓋 WPF-UI 預設 CheckBox 樣式：見 WPFUICheckBox.xaml 說明，修復 Recycling 虛擬化下的 ArgumentNullException -->
+        <ResourceDictionary Source="WPFUICheckBox.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- WPF-UI's default Button style forces HorizontalAlignment="Left" on the button itself (not just its text),
+         so it stops stretching to fill its container; restore the app's original stretch + centered-text look.
+         BasedOn references the explicit "DefaultButtonStyle" key (WPF-UI's real template) instead of the
+         implicit {x:Type Button} key, since self-referencing the same implicit key is unreliable across merges -->
+    <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- TextBlock isn't restyled by WPF-UI's ControlsDictionary and defaults to black text, invisible on dark backgrounds -->
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+</ResourceDictionary>

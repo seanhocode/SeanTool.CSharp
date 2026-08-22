@@ -1,4 +1,6 @@
-﻿namespace SeanTool.CSharp.WPF
+﻿using SeanTool.CSharp.WPFTool.Enums.ModelEditor;
+
+namespace SeanTool.CSharp.WPFTool.Attributes.ModelEditor
 {
     // 用來標記字串屬性是「檔案選取」還是「資料夾選取」
     [AttributeUsage(AttributeTargets.Property)]

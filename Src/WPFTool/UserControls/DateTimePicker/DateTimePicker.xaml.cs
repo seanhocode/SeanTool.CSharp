@@ -2,35 +2,44 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.UserControls.DateTimePicker
 {
-    public partial class DataTimePicker : UserControl
+    public partial class DateTimePicker : UserControl
     {
         private bool _updatingParts;
 
-        public DataTimePicker()
+        private static readonly string[] DateFormats =
+        {
+            "yyyyMMdd",
+            "yyyy/M/d",
+            "yyyy/MM/dd",
+            "yyyy-M-d",
+            "yyyy-MM-dd",
+            "yyyy.M.d",
+            "yyyy.MM.dd",
+        };
+
+        public DateTimePicker()
         {
             InitializeComponent();
             TimeTextBox.Text = "00:00:00";
             UpdateParts(SelectedDateTime);
+            DatePickerControl.DateValidationError += DatePickerDateValidationError;
         }
 
         public static readonly DependencyProperty SelectedDateTimeProperty =
             DependencyProperty.Register(
                 nameof(SelectedDateTime),
                 typeof(DateTime?),
-                typeof(DataTimePicker),
+                typeof(DateTimePicker),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedDateTimeChanged));
 
         public static readonly DependencyProperty IsReadOnlyProperty =
             DependencyProperty.Register(
                 nameof(IsReadOnly),
                 typeof(bool),
-                typeof(DataTimePicker),
+                typeof(DateTimePicker),
                 new PropertyMetadata(false, OnIsReadOnlyChanged));
-
-        public static readonly DependencyProperty ErrorMessageProperty =
-            DependencyProperty.Register(nameof(ErrorMessage), typeof(string), typeof(DataTimePicker));
 
         public DateTime? SelectedDateTime
         {
@@ -44,12 +53,6 @@ namespace SeanTool.CSharp.WPF
             set => SetValue(IsReadOnlyProperty, value);
         }
 
-        public string? ErrorMessage
-        {
-            get => (string?)GetValue(ErrorMessageProperty);
-            private set => SetValue(ErrorMessageProperty, value);
-        }
-
         public static bool TryParseTime(string? text, out TimeSpan time)
         {
             return TimeSpan.TryParseExact(
@@ -60,9 +63,35 @@ namespace SeanTool.CSharp.WPF
                    && time < TimeSpan.FromDays(1);
         }
 
+        public static bool TryParseDate(string? text, out DateTime date)
+        {
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                text = text.Trim();
+                if (DateTime.TryParseExact(text, DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
+                    || DateTime.TryParse(text, CultureInfo.CurrentCulture, DateTimeStyles.None, out date)
+                    || DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+                {
+                    return true;
+                }
+            }
+
+            date = default;
+            return false;
+        }
+
+        private static void DatePickerDateValidationError(object? sender, DatePickerDateValidationErrorEventArgs args)
+        {
+            args.ThrowException = false;
+            if (sender is DatePicker datePicker && TryParseDate(args.Text, out DateTime date))
+            {
+                datePicker.SelectedDate = date;
+            }
+        }
+
         private static void OnSelectedDateTimeChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
         {
-            if (dependencyObject is DataTimePicker picker)
+            if (dependencyObject is DateTimePicker picker)
             {
                 picker.UpdateParts((DateTime?)args.NewValue);
             }
@@ -70,7 +99,7 @@ namespace SeanTool.CSharp.WPF
 
         private static void OnIsReadOnlyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
         {
-            if (dependencyObject is DataTimePicker picker)
+            if (dependencyObject is DateTimePicker picker)
             {
                 picker.DatePickerControl.IsEnabled = !(bool)args.NewValue;
                 picker.TimeTextBox.IsReadOnly = (bool)args.NewValue;
@@ -85,6 +114,14 @@ namespace SeanTool.CSharp.WPF
         private void TimeTextChanged(object sender, TextChangedEventArgs e)
         {
             UpdateSelectedDateTime();
+        }
+
+        private void TimeTextLostFocus(object sender, RoutedEventArgs e)
+        {
+            if (!TryParseTime(TimeTextBox.Text, out _))
+            {
+                RestoreDefaultTime();
+            }
         }
 
         private void UpdateSelectedDateTime(DateTime? value)
@@ -112,19 +149,22 @@ namespace SeanTool.CSharp.WPF
 
             if (DatePickerControl.SelectedDate is not DateTime date)
             {
-                ErrorMessage = null;
                 SetCurrentValue(SelectedDateTimeProperty, null);
                 return;
             }
 
-            if (!TryParseTime(TimeTextBox.Text, out TimeSpan time))
+            if (TryParseTime(TimeTextBox.Text, out TimeSpan time))
             {
-                ErrorMessage = "時間格式錯誤，請輸入 HH:mm 或 HH:mm:ss。";
-                return;
+                SetCurrentValue(SelectedDateTimeProperty, date.Date.Add(time));
             }
+        }
 
-            ErrorMessage = null;
-            SetCurrentValue(SelectedDateTimeProperty, date.Date.Add(time));
+        private void RestoreDefaultTime()
+        {
+            _updatingParts = true;
+            TimeTextBox.Text = "00:00:00";
+            _updatingParts = false;
+            UpdateSelectedDateTime();
         }
     }
 }

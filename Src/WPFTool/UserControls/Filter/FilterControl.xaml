@@ -1,0 +1,129 @@
+<UserControl x:Class="SeanTool.CSharp.WPFTool.UserControls.Filter.FilterControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.Filter"
+             xmlns:controls="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.DateTimePicker"
+             xmlns:filterEnums="clr-namespace:SeanTool.CSharp.WPFTool.Enums.Filter"
+             MinWidth="120"
+             HorizontalAlignment="Stretch">
+    <!--
+        ponytail: 下方 Width 綁定已停用（暫不移除，僅註解）。
+        原綁定：Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type DataGridColumnHeader}}}"
+        問題：本控制項是塞在 DataGridColumnHeader 的 Header 內容，
+        Header 容器的 ActualWidth 是由內容大小反推出來的，
+        這裡卻把內容(本控制項)的 Width 綁回容器的 ActualWidth，
+        形成「內容大小依賴容器大小、容器大小又依賴內容大小」的排版循環，
+        導致 WPF 反覆 Measure/Arrange，不論資料筆數多寡都會卡頓，
+        且畫面可能卡在排版尚未收斂的中間狀態(欄位渲染不完整)。
+        上方已有 HorizontalAlignment="Stretch" 可自動撐滿 Header，此綁定並非必要。
+        確認不再需要後可直接刪除本註解與此說明。
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <!--引用WPFTool的Theme.xaml，讓控制項套用WPF-UI的樣式-->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/WPFTool;component/Styles/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--日期時間篩選值的DataTemplate-->
+            <DataTemplate x:Key="DateTimeValueTemplate">
+                <controls:DateTimePicker SelectedDateTime="{Binding DateTimeValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </DataTemplate>
+
+            <!--日期時間範圍篩選值的DataTemplate-->
+            <DataTemplate x:Key="DateRangeValueTemplate">
+                <StackPanel>
+                    <controls:DateTimePicker SelectedDateTime="{Binding DateTimeValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="起始日期" />
+                    <controls:DateTimePicker SelectedDateTime="{Binding DateTimeValueTo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="結束日期" Margin="0,3,0,0" />
+                </StackPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <!--篩選條件展開收合按鈕-->
+            <Button x:Name="FilterButton"
+                Width="26"
+                Height="26"
+                Grid.Column="0"
+                Padding="0"
+                ToolTip="展開篩選選項"
+                Click="OpenFilterOptions">
+                <Path Width="15"
+                    Height="14"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                    Data="M 1,1 L 15,1 L 10,7 L 10,14 L 6,12 L 6,7 Z" />
+            </Button>
+            <!--篩選條件標頭-->
+            <TextBlock Text="{Binding Header}"
+                Grid.Column="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center" />
+        </Grid>
+
+        <!--篩選條件-->
+        <StackPanel x:Name="FilterOptions" Grid.Row="1" Visibility="Collapsed">
+            <!--篩選條件運算子-->
+            <ComboBox ItemsSource="{Binding AvailableOperators}"
+                      SelectedItem="{Binding Operator, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+            </ComboBox>
+
+            <!--把目前 FilterControl.DataContext 物件本身，指定給 ContentControl 的 Content-->
+            <ContentControl Content="{Binding}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="ContentTemplate">
+                            <Setter.Value>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="輸入篩選值" />
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FilterDefinition.ValueType}" Value="{x:Static filterEnums:FilterValueType.DateTime}">
+                                <Setter Property="ContentTemplate" Value="{StaticResource DateTimeValueTemplate}" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding FilterDefinition.ValueType}" Value="{x:Static filterEnums:FilterValueType.DateTime}" />
+                                    <Condition Binding="{Binding Operator}" Value="Between" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="ContentTemplate" Value="{StaticResource DateRangeValueTemplate}" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
+            <Grid Margin="0,5,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button Content="查詢"
+                    Command="{Binding ApplyCommand}"
+                    Grid.Column="0"
+                    Margin="0,0,2,0" 
+                    Padding="8,2" />
+
+                <Button Content="清除"
+                    Command="{Binding ClearCommand}"
+                    Grid.Column="1"
+                    Margin="2,0,0,0" 
+                    Padding="8,2" />
+            </Grid>
+        </StackPanel>
+    </Grid>
+</UserControl>

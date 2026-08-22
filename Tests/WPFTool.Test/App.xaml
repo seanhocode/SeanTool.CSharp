@@ -1,13 +1,13 @@
-﻿<Application x:Class="WPFTool.Test.App"
+﻿<Application x:Class="SeanTool.CSharp.WPFTool.Test.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:WPFTool.Test"
+             xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.Test"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
 
-                <ResourceDictionary Source="/WPFTool;component/Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="/WPFTool;component/Styles/Theme.xaml"/>
 
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

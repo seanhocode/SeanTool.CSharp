@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.JsonTool
 {
     public class DataTableConverter : JsonConverter<DataTable>
     {

@@ -1,0 +1,78 @@
+<!--
+    根因修復（全域）：WPF-UI 內建的 CheckBox 樣板內含針對 Tag 的 DoubleAnimation；
+    只要一顆勾選中的 CheckBox 脫離視覺樹重建（篩選、DataGrid/TreeView 的 Recycling 虛擬化回收容器…
+    任何一種都算），動畫 clock 對已清空的值求值就會拋出 ArgumentNullException (defaultDestinationValue)。
+    此問題已在 DynamicDataGrid、VirtualTreeView 各自發生過，故不再局部補洞，
+    改用這顆不套用動畫的隱式（無 x:Key）CheckBox 樣式覆蓋 WPF-UI 預設樣式，讓全部 CheckBox 都免疫。
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="box"
+                                Width="16"
+                                Height="16"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="3">
+                            <Grid>
+                                <Path x:Name="checkMark"
+                                      Width="9"
+                                      Height="6"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="M 0,3 L 3,6 L 9,0"
+                                      Stroke="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      StrokeStartLineCap="Round"
+                                      StrokeThickness="1.5"
+                                      Visibility="Collapsed" />
+                                <Rectangle x:Name="indeterminateMark"
+                                           Width="8"
+                                           Height="2"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           RadiusX="1"
+                                           RadiusY="1"
+                                           Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                                           Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ContentPresenter Margin="4,0,0,0"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="box" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <Setter TargetName="checkMark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="box" Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+                            <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+                            <Setter TargetName="indeterminateMark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="box" Property="Background" Value="{DynamicResource ControlFillColorDisabledBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

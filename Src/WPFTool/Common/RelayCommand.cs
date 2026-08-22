@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.Common
 {
     public class RelayCommand<T> : ICommand
     {

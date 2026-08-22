@@ -1,4 +1,4 @@
-﻿namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.Enums.ModelEditor
 {
     public enum EditorInputType
     {
@@ -9,12 +9,6 @@
         Enum,
         FilePath,
         FolderPath,
-        Object // 子物件
-    }
-
-    public enum PathType
-    {
-        File,
-        Folder
+        Object
     }
 }

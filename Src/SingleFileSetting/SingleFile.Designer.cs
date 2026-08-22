@@ -1,4 +1,4 @@
-﻿namespace SeanTool.Tools
+﻿namespace SeanTool.CSharp.SingleFileSetting
 {
     partial class SingleFile
     {

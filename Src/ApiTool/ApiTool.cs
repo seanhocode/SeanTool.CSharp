@@ -5,7 +5,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-namespace SeanTool.CSharp
+namespace SeanTool.CSharp.ApiTool
 {
     public static class ApiToolExtensions
     {

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SeanTool.Tools
+namespace SeanTool.CSharp.SingleFileSetting
 {
     public partial class SingleFile : Form
     {
@@ -21,7 +21,7 @@ namespace SeanTool.Tools
         private void ShowPublishSettingBtn_Click(object sender, EventArgs e)
         {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "PublishSetting.png");
-            new ImageViewerForm(path, "Åã¥Ü¹Ï¤ù").Show();
+            new ImageViewerForm(path, "ï¿½ï¿½Ü¹Ï¤ï¿½").Show();
         }
 
         private void ShowGitSettingBtn_Click(object sender, EventArgs e)
@@ -44,10 +44,10 @@ namespace SeanTool.Tools
             {
                 Multiline = true,
                 ReadOnly = true,
-                ScrollBars = ScrollBars.Both,   // ¥i¤ô¥­/««ª½±²°Ê
-                WordWrap = false,               // ¤£¦Û°Ê´«¦æ¡]¤è«K¬Ýªø¦æ¡^
+                ScrollBars = ScrollBars.Both,   // ï¿½iï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                WordWrap = false,               // ï¿½ï¿½ï¿½Û°Ê´ï¿½ï¿½ï¿½]ï¿½ï¿½Kï¿½Ýªï¿½ï¿½ï¿½^
                 Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 10) // µ¥¼e¦rÅé¡A¾\Åªµ{¦¡/Log ¤Íµ½
+                Font = new Font("Consolas", 10) // ï¿½ï¿½ï¿½eï¿½rï¿½ï¿½Aï¿½\Åªï¿½{ï¿½ï¿½/Log ï¿½Íµï¿½
             };
 
             tb.Text = content;
@@ -66,13 +66,13 @@ namespace SeanTool.Tools
             var pictureBox = new PictureBox
             {
                 Dock = DockStyle.Fill,
-                SizeMode = PictureBoxSizeMode.Zoom // ÁY©ñ¹Ï¤ù¡A«O«ù¤ñ¨Ò
+                SizeMode = PictureBoxSizeMode.Zoom // ï¿½Yï¿½ï¿½Ï¤ï¿½ï¿½Aï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½
             };
 
             if (File.Exists(imagePath))
                 pictureBox.Image = Image.FromFile(imagePath);
             else
-                MessageBox.Show($"§ä¤£¨ì¹Ï¤ù¡G{imagePath}", "¿ù»~", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"ï¿½ä¤£ï¿½ï¿½Ï¤ï¿½ï¿½G{imagePath}", "ï¿½ï¿½ï¿½~", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             Controls.Add(pictureBox);
         }

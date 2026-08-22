@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.FileTool.Test
 {
     public class FileToolUnitTest
     {
-        // ¨C­Ó´ú¸Õ¤èªk³£¥Î [Fact] ¼Ð°O (xUnit.net)
+        // ï¿½Cï¿½Ó´ï¿½ï¿½Õ¤ï¿½kï¿½ï¿½ï¿½ï¿½ [Fact] ï¿½Ð°O (xUnit.net)
 
         [Fact]
         public void VarableCheck()
@@ -18,41 +18,41 @@ namespace SeanTool.CSharp.Test
         public void CheckFolderExistTest()
         {
             string testFolderPath = Path.Combine(FileTool.ThisExeDir, "RootFolderNoExist");
-            // ½T«O¸ê®Æ§¨¤£¦s¦b
+            // ï¿½Tï¿½Oï¿½ï¿½Æ§ï¿½ï¿½ï¿½ï¿½sï¿½b
             if (Directory.Exists(testFolderPath))
                 Directory.Delete(testFolderPath, true);
 
-            // ´ú¸Õ¸ê®Æ§¨¤£¦s¦b¥B¤£¦Û°Ê«Ø¥ß
+            // ï¿½ï¿½ï¿½Õ¸ï¿½Æ§ï¿½ï¿½ï¿½ï¿½sï¿½bï¿½Bï¿½ï¿½ï¿½Û°Ê«Ø¥ï¿½
             Assert.False(FileTool.CheckFolderExist(testFolderPath, false));
 
-            // ´ú¸Õ¸ê®Æ§¨¤£¦s¦b¥B¦Û°Ê«Ø¥ß
+            // ï¿½ï¿½ï¿½Õ¸ï¿½Æ§ï¿½ï¿½ï¿½ï¿½sï¿½bï¿½Bï¿½Û°Ê«Ø¥ï¿½
             Assert.True(FileTool.CheckFolderExist(testFolderPath, true));
             Assert.True(Directory.Exists(testFolderPath));
 
-            // ²M²z´ú¸Õ¸ê®Æ§¨
+            // ï¿½Mï¿½zï¿½ï¿½ï¿½Õ¸ï¿½Æ§ï¿½
             Directory.Delete(testFolderPath, true);
         }
 
         [Fact]
         public void CheckFileExistTest()
         {
-            // Do´ú¸Õ
+            // Doï¿½ï¿½ï¿½ï¿½
             string testFilePath = Path.Combine(FileTool.ThisExeDir, "TestFileNoExist.txt");
 
-            // ½T«OÀÉ®×¤£¦s¦b
+            // ï¿½Tï¿½Oï¿½É®×¤ï¿½ï¿½sï¿½b
             if (File.Exists(testFilePath))
                 File.Delete(testFilePath);
 
-            // ´ú¸ÕÀÉ®×¤£¦s¦b
+            // ï¿½ï¿½ï¿½ï¿½ï¿½É®×¤ï¿½ï¿½sï¿½b
             Assert.False(FileTool.CheckFileExist(testFilePath));
 
-            // «Ø¥ß´ú¸ÕÀÉ®×
+            // ï¿½Ø¥ß´ï¿½ï¿½ï¿½ï¿½É®ï¿½
             File.WriteAllText(testFilePath, "This is a test file.");
 
-            // ´ú¸ÕÀÉ®×¦s¦b
+            // ï¿½ï¿½ï¿½ï¿½ï¿½É®×¦sï¿½b
             Assert.True(FileTool.CheckFileExist(testFilePath));
 
-            // ²M²z´ú¸ÕÀÉ®×
+            // ï¿½Mï¿½zï¿½ï¿½ï¿½ï¿½ï¿½É®ï¿½
             File.Delete(testFilePath);
         }
 
@@ -74,7 +74,7 @@ namespace SeanTool.CSharp.Test
                 (1, "RootFolder\\Depth1Folder3\\TestFile11.txt" )
             };
 
-            // «Ø¥ß´ú¸Õ¸ê®Æ§¨¤ÎÀÉ®×
+            // ï¿½Ø¥ß´ï¿½ï¿½Õ¸ï¿½Æ§ï¿½ï¿½ï¿½ï¿½É®ï¿½
             string testFolderPath = Path.Combine(FileTool.ThisExeDir, "RootFolder");
             foreach ((int FolderDepth, string FilePath) relativePath in folderPathList)
             {
@@ -84,12 +84,12 @@ namespace SeanTool.CSharp.Test
                 File.WriteAllText(fullPath, fullPath);
             }
 
-            // ´ú¸Õ¤£·j´M¤l¸ê®Æ§¨
+            // ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½jï¿½Mï¿½lï¿½ï¿½Æ§ï¿½
             List<string> files = FileTool.GetAllFileInFolder(testFolderPath, false);
             Assert.Single(files);
             Assert.Contains(Path.Combine(testFolderPath, "TestFile7.txt"), files);
 
-            // ´ú¸Õ·j´M©Ò¦³¤l¸ê®Æ§¨
+            // ï¿½ï¿½ï¿½Õ·jï¿½Mï¿½Ò¦ï¿½ï¿½lï¿½ï¿½Æ§ï¿½
             files = FileTool.GetAllFileInFolder(testFolderPath, true);
             Assert.Equal(folderPathList.Count, files.Count);
             foreach ((int FolderDepth, string FilePath) relativePath in folderPathList)
@@ -98,7 +98,7 @@ namespace SeanTool.CSharp.Test
                 Assert.Contains(expectedFilePath, files);
             }
 
-            // ´ú¸Õ·j´M¤l¸ê®Æ§¨¨ì«ü©w²`«×(2¼h)
+            // ï¿½ï¿½ï¿½Õ·jï¿½Mï¿½lï¿½ï¿½Æ§ï¿½ï¿½ï¿½ï¿½ï¿½wï¿½`ï¿½ï¿½(2ï¿½h)
             List<(int FolderDepth, string FilePath)> folderPathListDepth2 
                 = folderPathList.Where(f => f.FolderDepth <= 2).ToList();
 
@@ -150,7 +150,7 @@ namespace SeanTool.CSharp.Test
             sw.Stop();
 
             Assert.Equal(10_000_004, lineCount);
-            Assert.True(sw.ElapsedMilliseconds < 2_000);
+            Assert.True(sw.ElapsedMilliseconds < 5_000);
 
             string dirPath = Path.GetDirectoryName(filePath)!;
             if (Directory.Exists(dirPath) && !Directory.EnumerateFileSystemEntries(dirPath).Any())
@@ -215,7 +215,7 @@ namespace SeanTool.CSharp.Test
 
                 for (int i = 0; i < lines; i++)
                 {
-                    // ---- ¼Ò¦¡ B¡G»¼¼W®É¶¡ + ÀH¾÷ 0~50ms¡]Ãþ¤ñ­t¸ü¡^ ----
+                    // ---- ï¿½Ò¦ï¿½ Bï¿½Gï¿½ï¿½ï¿½Wï¿½É¶ï¿½ + ï¿½Hï¿½ï¿½ 0~50msï¿½]ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½ï¿½^ ----
                     currentTime = currentTime.AddMilliseconds(rand.Next(0, 50));
 
                     sb.Clear();

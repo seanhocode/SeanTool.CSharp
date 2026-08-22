@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace WPFTool.Test
+namespace SeanTool.CSharp.WPFTool.Test
 {
     /// <summary>
     /// Interaction logic for App.xaml

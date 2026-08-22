@@ -35,14 +35,15 @@
 <!--xmlns => 引用命名空間(Namespace)，相當於 C# 中的 using-->
 <!--xmlns:x => 引用其他空間，並將該空間命名為 x-->
 <!--x:Class => 代表在 x 命名空間中定義的 Class 屬性-->
-<UserControl x:Class="SeanTool.CSharp.WPF.ModelEditor"
+<UserControl x:Class="SeanTool.CSharp.WPFTool.UserControls.ModelEditor.ModelEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:SeanTool.CSharp.WPF"
+             xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.ModelEditor"
+             xmlns:controls="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.DateTimePicker"
              mc:Ignorable="d" 
-             d:DesignHeight="500" d:DesignWidth="800" Background="White">
+             d:DesignHeight="500" d:DesignWidth="800" Background="{DynamicResource ApplicationBackgroundBrush}">
 
     <!--
     Resources 屬性用來存放各種資源或物件，然後再透過 StaticResources 擴充標記來使用
@@ -74,7 +75,7 @@
             語法格式： pack://application:,,,/你的組件名稱;component/資料夾/檔案.xaml
             -->
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/WPFTool;component/Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/WPFTool;component/Styles/Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <DataTemplate x:Key="TextTemplate">
@@ -86,12 +87,23 @@
                 <TextBox Text="{Binding Value}"/>
             </DataTemplate>
 
+            <!--IsTextArea=True 時使用的多行 TextBox，預設展開 MinLines，可隨內容/拖曳垂直展開-->
+            <DataTemplate x:Key="TextAreaTemplate">
+                <TextBox Text="{Binding Value}"
+                         MinLines="{Binding TextAreaMinLines}"
+                         AcceptsReturn="True"
+                         AcceptsTab="False"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         VerticalAlignment="Stretch"/>
+            </DataTemplate>
+
             <DataTemplate x:Key="BooleanTemplate">
                 <CheckBox IsChecked="{Binding Value}" VerticalAlignment="Center"/>
             </DataTemplate>
 
             <DataTemplate x:Key="DateTimeTemplate">
-                <local:DataTimePicker SelectedDateTime="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <controls:DateTimePicker SelectedDateTime="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </DataTemplate>
 
             <DataTemplate x:Key="PathTemplate">
@@ -174,6 +186,9 @@
                                     <DataTrigger Binding="{Binding InputType}" Value="Object">
                                         <Setter Property="ContentTemplate" Value="{StaticResource ObjectTemplate}"/>
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsTextArea}" Value="True">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource TextAreaTemplate}"/>
+                                    </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </ContentControl.Style>
@@ -212,10 +227,10 @@
                           ItemTemplate="{StaticResource PropertyRowTemplate}"/>
         </ScrollViewer>
 
-        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Background="#F5F5F5">
+        <Border Grid.Row="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
                 <Button Content="儲存 (Save)" Width="100" Height="30" Margin="5,0"
-                    Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" Cursor="Hand"
+                    Command="{Binding SaveCommand}" Cursor="Hand"
                     IsEnabled="{Binding IsEditing}"/>
                 <Button Content="取消 (Cancel)" Width="100" Height="30" Margin="5,0"
                     Command="{Binding CancelCommand}" Cursor="Hand" IsEnabled="{Binding IsEditing}"/>

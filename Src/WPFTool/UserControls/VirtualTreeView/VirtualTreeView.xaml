@@ -1,0 +1,96 @@
+<UserControl x:Class="SeanTool.CSharp.WPFTool.UserControls.VirtualTreeView.VirtualTreeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.VirtualTreeView"
+             xmlns:converter="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
+             xmlns:model="clr-namespace:SeanTool.CSharp.WPFTool.Models.VirtualTreeView"
+             xmlns:filter="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.Filter"
+             Background="{DynamicResource ApplicationBackgroundBrush}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        
+        <ResourceDictionary>
+            <!--引用WPFTool的Theme.xaml，讓控制項套用WPF-UI的樣式-->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/WPFTool;component/Styles/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <model:CheckTypeConverter x:Key="CheckTypeConverter" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" DockPanel.Dock="Right" Orientation="Horizontal">
+            <!--<CheckBox Content="顯示勾選"
+              Margin="12,0,0,0"
+              VerticalAlignment="Center"
+              IsChecked="{Binding IsCheckVisible, RelativeSource={RelativeSource AncestorType={x:Type local:VirtualTreeView}}, Mode=TwoWay}" />-->
+            <Button Content="全部展開" Click="ExpandAllClick" Margin="8,0,0,0" Padding="12,4" />
+            <Button Content="全部收合" Click="CollapseAllClick" Margin="8,0,0,0" Padding="12,4" />
+        </StackPanel>
+        <filter:FilterControl Grid.Row="1"
+            AlwaysShowFilterOptions="True"
+            DataContext="{Binding FilterViewModel, RelativeSource={RelativeSource AncestorType={x:Type local:VirtualTreeView}}}" />
+
+        <Border Grid.Row="2"
+                Padding="6"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <TreeView x:Name="TreeViewControl"
+                      Padding="2"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      FontSize="15"
+                      ItemsSource="{Binding FilteredItems, RelativeSource={RelativeSource AncestorType={x:Type local:VirtualTreeView}}}"
+                      SelectedItemChanged="TreeViewSelectedItemChanged"
+                      VirtualizingStackPanel.IsVirtualizing="True"
+                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.CanContentScroll="True">
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        <Setter Property="MinHeight" Value="34" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Style>
+                </TreeView.ItemContainerStyle>
+                <TreeView.Resources>
+                    <HierarchicalDataTemplate DataType="{x:Type model:TreeNodeViewModel}" ItemsSource="{Binding Children}">
+                        <Border x:Name="ItemChrome"
+                                MinHeight="32"
+                                Padding="8,5"
+                                CornerRadius="6">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Margin="0,0,8,0"
+                                          VerticalAlignment="Center"
+                                          IsThreeState="{Binding IsThreeState}"
+                                          IsChecked="{Binding VisibleCheckType, Mode=TwoWay, Converter={StaticResource CheckTypeConverter}}"
+                                          Visibility="{Binding IsCheckVisible, RelativeSource={RelativeSource AncestorType={x:Type local:VirtualTreeView}}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <TextBlock x:Name="NodeTextBlock"
+                                           Text="{Binding Name}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <HierarchicalDataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                <Setter TargetName="ItemChrome" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                <Setter TargetName="ItemChrome" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="NodeTextBlock" Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </DataTrigger>
+                        </HierarchicalDataTemplate.Triggers>
+                    </HierarchicalDataTemplate>
+                </TreeView.Resources>
+            </TreeView>
+        </Border>
+    </Grid>
+</UserControl>

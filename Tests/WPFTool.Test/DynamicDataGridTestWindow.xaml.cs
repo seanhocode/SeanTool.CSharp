@@ -1,8 +1,10 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Controls;
+using SeanTool.CSharp.WPFTool.Models.DynamicDataGrid;
+using SeanTool.CSharp.WPFTool.Test.Models;
+using SeanTool.CSharp.WPFTool.Windows;
 
-namespace SeanTool.CSharp.WPF.Test
+namespace SeanTool.CSharp.WPFTool.Test
 {
     /// <summary>
     /// DynamicDataGridTestWindow.xaml 的互動邏輯
@@ -12,8 +14,7 @@ namespace SeanTool.CSharp.WPF.Test
         // 資料來源
         public ObservableCollection<Person> PersonList { get; set; }
 
-        // 欄位定義 (這通常在建構子初始化，或是從設定檔讀取)
-        public List<DynamicDataGridColumnDefinition> ColumnDefinitions { get; set; }
+        public List<DynamicDataGridActionDefinition> ActionDefinitions { get; set; }
 
         public DynamicDataGridTestWindow()
         {
@@ -27,10 +28,12 @@ namespace SeanTool.CSharp.WPF.Test
         private void LoadDynamicDataGridTestData()
         {
             PersonList = new ObservableCollection<Person>();
+            ObservableCollection<Person>  list = new ObservableCollection<Person>();
             var random = new Random(20260819);
-            for (int i = 0; i < 100_000; i++)
+            int dataCount = 1000_000;
+            for (int i = 0; i < dataCount; i++)
             {
-                PersonList.Add(new Person
+                list.Add(new Person
                 {
                     ID = i,
                     Name = $"User {random.Next(1, 1_000_000):D6}",
@@ -40,13 +43,29 @@ namespace SeanTool.CSharp.WPF.Test
                 });
             }
 
-            // 2. 定義欄位
-            ColumnDefinitions = new List<DynamicDataGridColumnDefinition>
+            ActionDefinitions = new List<DynamicDataGridActionDefinition>
             {
-                new DynamicDataGridColumnDefinition { Header = "編號", BindingPath = "ID", Width = 100 },
-                new DynamicDataGridColumnDefinition { Header = "姓名", BindingPath = "Name", Width = new DataGridLength(1, DataGridLengthUnitType.Star) }, // Star width
-                new DynamicDataGridColumnDefinition { Header = "加入時間", BindingPath = "BirthDate", StringFormat = "yyyy/MM/dd HH:mm", Width = 150 }
+                new DynamicDataGridActionDefinition
+                {
+                    Header = "",
+                    Content = "編輯",
+                    Action = item => new ModelEditorWindow((Person)item).ShowDialog()
+                },
+                new DynamicDataGridActionDefinition
+                {
+                    Header = "",
+                    Content = "刪除",
+                    Action = item =>
+                    {
+                        if (MessageBox.Show($"確定要刪除 {((Person)item).Name} 嗎？", "刪除確認", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                        {
+                            PersonList.Remove((Person)item);
+                        }
+                    }
+                }
             };
+
+            PersonList = list;
         }
 
         private void CheckDataValue(object sender, RoutedEventArgs e)

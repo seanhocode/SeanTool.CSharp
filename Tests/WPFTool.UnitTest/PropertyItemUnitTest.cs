@@ -1,9 +1,10 @@
 using System.ComponentModel;
-using System.Reflection;
-using SeanTool.CSharp.WPF;
+using SeanTool.CSharp.WPFTool.Enums.ModelEditor;
+using SeanTool.CSharp.WPFTool.Models.Fields;
+using SeanTool.CSharp.WPFTool.Models.ModelEditor;
 using Xunit;
 
-namespace SeanTool.CSharp.WPF.Test
+namespace SeanTool.CSharp.WPFTool.Test
 {
     /// <summary>
     /// PropertyItem 單元測試集合
@@ -323,10 +324,29 @@ namespace SeanTool.CSharp.WPF.Test
             Assert.Equal("read only", model.ReadOnlyName);  // Model 未改變
         }
 
+        /// <summary>
+        /// 測試：ReadOnlyAttribute - 標記 [ReadOnly(true)] 的屬性即使有公開 Setter，仍應視為唯讀且無法編輯
+        /// 驗證 ObjectList/單一物件情境下 ReadOnlyAttribute 能正確保護欄位不被 ApplyChange 寫回
+        /// </summary>
+        [Fact]
+        public void ReadOnlyAttribute_Property_WithSetter_IsTreatedAsReadOnly()
+        {
+            var model = new TestModel { LockedName = "original" };
+            var item = CreatePropertyItem(model, nameof(TestModel.LockedName));
+
+            Assert.True(item.IsReadOnly);
+            Assert.False(item.CanEdit);
+
+            item.Value = "changed";
+            item.ApplyChange();
+
+            Assert.Equal("original", model.LockedName); // 有 Setter 但仍不會被寫回
+        }
+
         private static PropertyItem CreatePropertyItem(object model, string propertyName)
         {
-            var property = model.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)!;
-            return new PropertyItem(model, property);
+            var field = FieldAnalyzer.Analyze(model).Single(f => f.Name == propertyName);
+            return new PropertyItem(model, field);
         }
 
         private sealed class TestModel
@@ -337,6 +357,9 @@ namespace SeanTool.CSharp.WPF.Test
 
             [DisplayName("Read only")]
             public string ReadOnlyName => "read only";
+
+            [ReadOnly(true)]
+            public string LockedName { get; set; } = "locked";
 
             public Status Status { get; set; } = Status.Active;
 

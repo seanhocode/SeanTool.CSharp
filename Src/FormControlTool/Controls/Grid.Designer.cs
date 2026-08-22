@@ -1,4 +1,4 @@
-﻿namespace SeanTool.CSharp.Forms
+﻿namespace SeanTool.CSharp.FormControlTool.Controls
 {
     partial class Grid<T>
     {

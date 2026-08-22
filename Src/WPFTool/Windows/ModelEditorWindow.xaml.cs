@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.Windows
 {
     /// <summary>
     /// EditorModelWindow.xaml 的互動邏輯

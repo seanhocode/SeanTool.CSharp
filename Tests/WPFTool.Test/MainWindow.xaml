@@ -1,14 +1,18 @@
-﻿<Window x:Class="SeanTool.CSharp.WPF.Test.MainWindow"
+﻿<Window x:Class="SeanTool.CSharp.WPFTool.Test.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SeanTool.CSharp.WPF.Test"
-        xmlns:WPFTool="clr-namespace:SeanTool.CSharp.WPF;assembly=WPFTool"
+        xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.Test"
+        xmlns:WPFTool="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.DynamicDataGrid;assembly=WPFTool"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        Background="{DynamicResource ApplicationBackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -21,5 +25,9 @@
         <Button Grid.Row="1" Click="GenModelEditorByTool" Height="30" Margin="5">GenModelEditorByTool</Button>
         <Button Grid.Row="2" Click="CheckModelValue" Height="30" Margin="5">CheckValue</Button>
         <Button Grid.Row="3" Click="ShowDynamicDataGrid" Height="30" Margin="5">ShowDynamicDataGrid</Button>
+        <Button Grid.Row="4" Click="ShowDynamicDataGridDataTable" Height="30" Margin="5">ShowDynamicDataGridDataTable</Button>
+        <Button Grid.Row="5" Click="GenModelEditorDataTable" Height="30" Margin="5">GenModelEditorDataTable</Button>
+        <Button Grid.Row="6" Click="ShowTreeView" Height="30" Margin="5">ShowTreeView</Button>
+        <Button Grid.Row="7" Click="ShowDropDownList" Height="30" Margin="5">ShowDropDownList</Button>
     </Grid>
 </Window>

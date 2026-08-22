@@ -1,19 +1,19 @@
-﻿<Window x:Class="SeanTool.CSharp.WPF.ModelEditorWindow"
+﻿<Window x:Class="SeanTool.CSharp.WPFTool.Windows.ModelEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SeanTool.CSharp.WPF"
+        xmlns:local="clr-namespace:SeanTool.CSharp.WPFTool.UserControls.ModelEditor"
         mc:Ignorable="d"
         Title="Model Editor" 
         Height="600" Width="500"
         WindowStartupLocation="CenterScreen"
-        Background="White">
+        Background="{DynamicResource ApplicationBackgroundBrush}">
 
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/WPFTool;component/Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="/WPFTool;component/Styles/Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>

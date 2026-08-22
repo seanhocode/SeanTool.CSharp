@@ -1,4 +1,4 @@
-﻿namespace SeanTool.CSharp.Forms
+﻿namespace SeanTool.CSharp.FormControlTool.Forms
 {
     public partial class TextForm : Form
     {

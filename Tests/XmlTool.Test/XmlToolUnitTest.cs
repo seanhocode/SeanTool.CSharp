@@ -1,4 +1,4 @@
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.XmlTool.Test
 {
     public class XmlToolUnitTest
     {

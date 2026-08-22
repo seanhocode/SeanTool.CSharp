@@ -1,10 +1,13 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
+using SeanTool.CSharp.WPFTool.Common;
+using SeanTool.CSharp.WPFTool.Enums.ModelEditor;
+using SeanTool.CSharp.WPFTool.Models.Fields;
+using SeanTool.CSharp.WPFTool.Windows;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool.Models.ModelEditor
 {
     public class ModelEditorViewModel : ViewModelBase
     {
@@ -54,14 +57,12 @@ namespace SeanTool.CSharp.WPF
             Properties = new ObservableCollection<PropertyItem>();
             if (model == null) return;
 
-            // 掃描屬性
-            var props = model.GetType()
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(property => property.CanRead && property.GetIndexParameters().Length == 0)
-                .OrderBy(property => property.Name, StringComparer.Ordinal);
-            foreach (PropertyInfo p in props)
+            // 掃描欄位：共用 FieldAnalyzer，同時支援一般 CLR 物件與 DataTable(DataRowView) 動態欄位
+            var fields = FieldAnalyzer.Analyze(model)
+                .OrderBy(field => field.Name, StringComparer.Ordinal);
+            foreach (FieldDescriptor field in fields)
             {
-                var propertyItem = new PropertyItem(model, p)
+                var propertyItem = new PropertyItem(model, field)
                 {
                     IsEditing = IsEditing
                 };
