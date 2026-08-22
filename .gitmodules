@@ -1,0 +1,3 @@
+[submodule "SeanTool.Scripts"]
+	path = SeanTool.Scripts
+	url = https://github.com/seanhocode/SeanTool.Scripts.git
