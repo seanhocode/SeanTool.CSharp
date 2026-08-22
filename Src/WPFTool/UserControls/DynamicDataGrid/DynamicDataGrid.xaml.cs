@@ -17,80 +17,139 @@ namespace SeanTool.CSharp.WPF
             ViewModel.PropertyChanged += ViewModelPropertyChanged;
         }
 
+        # region 註冊 DependencyProperty
+
+        /// <summary>
+        /// 資料來源
+        /// </summary>
         public static readonly DependencyProperty DataSourceProperty =
             DependencyProperty.Register(nameof(DataSource), typeof(IEnumerable), typeof(DynamicDataGrid),
                 new PropertyMetadata(null, OnDataSourceChanged));
 
+        /// <summary>
+        /// 欄位定義
+        /// </summary>
+        public static readonly DependencyProperty ColumnDefinitionsProperty =
+            DependencyProperty.Register(nameof(ColumnDefinitions), typeof(IEnumerable<DynamicDataGridColumnDefinition>), typeof(DynamicDataGrid),
+                new PropertyMetadata(null, OnColumnDefinitionsChanged));
+
+        /// <summary>
+        /// 排序欄位
+        /// </summary>
+        public static readonly DependencyProperty SortPropertyProperty =
+            DependencyProperty.Register(nameof(SortProperty), typeof(string), typeof(DynamicDataGrid),
+                new PropertyMetadata(null, OnSortChanged));
+
+        /// <summary>
+        /// 升序降序
+        /// </summary>
+        public static readonly DependencyProperty SortDescendingProperty =
+            DependencyProperty.Register(nameof(SortDescending), typeof(bool), typeof(DynamicDataGrid),
+                new PropertyMetadata(false, OnSortChanged));
+
+        /// <summary>
+        /// 是否唯讀
+        /// </summary>
+        public static readonly DependencyProperty IsReadOnlyProperty =
+            DependencyProperty.Register(nameof(IsReadOnly), typeof(bool), typeof(DynamicDataGrid),
+                new PropertyMetadata(true, OnEditModeChanged));
+
+        /// <summary>
+        /// 是否顯示選取方塊
+        /// </summary>
+        public static readonly DependencyProperty ShowCheckBoxProperty =
+            DependencyProperty.Register(nameof(ShowCheckBox), typeof(bool), typeof(DynamicDataGrid),
+                new PropertyMetadata(false, OnShowCheckBoxChanged));
+
+        /// <summary>
+        /// 選取項目
+        /// </summary>
+        public static readonly DependencyProperty SelectedItemProperty =
+            DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(DynamicDataGrid),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        #endregion
+
+        # region DependencyProperty 封裝
+        /// <summary>
+        /// 資料來源
+        /// </summary>
         public IEnumerable? DataSource
         {
             get => (IEnumerable?)GetValue(DataSourceProperty);
             set => SetValue(DataSourceProperty, value);
         }
 
-        public static readonly DependencyProperty ColumnDefinitionsProperty =
-            DependencyProperty.Register(nameof(ColumnDefinitions), typeof(IEnumerable<DynamicDataGridColumnDefinition>), typeof(DynamicDataGrid),
-                new PropertyMetadata(null, OnColumnDefinitionsChanged));
-
+        /// <summary>
+        /// 欄位定義
+        /// </summary>
         public IEnumerable<DynamicDataGridColumnDefinition>? ColumnDefinitions
         {
             get => (IEnumerable<DynamicDataGridColumnDefinition>?)GetValue(ColumnDefinitionsProperty);
             set => SetValue(ColumnDefinitionsProperty, value);
         }
 
-        public static readonly DependencyProperty SortPropertyProperty =
-            DependencyProperty.Register(nameof(SortProperty), typeof(string), typeof(DynamicDataGrid),
-                new PropertyMetadata(null, OnSortChanged));
-
+        /// <summary>
+        /// 排序欄位
+        /// </summary>
         public string? SortProperty
         {
             get => (string?)GetValue(SortPropertyProperty);
             set => SetValue(SortPropertyProperty, value);
         }
 
-        public static readonly DependencyProperty SortDescendingProperty =
-            DependencyProperty.Register(nameof(SortDescending), typeof(bool), typeof(DynamicDataGrid),
-                new PropertyMetadata(false, OnSortChanged));
-
+        /// <summary>
+        /// 升序降序
+        /// </summary>
         public bool SortDescending
         {
             get => (bool)GetValue(SortDescendingProperty);
             set => SetValue(SortDescendingProperty, value);
         }
 
-        public static readonly DependencyProperty IsReadOnlyProperty =
-            DependencyProperty.Register(nameof(IsReadOnly), typeof(bool), typeof(DynamicDataGrid),
-                new PropertyMetadata(true, OnEditModeChanged));
-
+        /// <summary>
+        /// 是否唯讀
+        /// </summary>
         public bool IsReadOnly
         {
             get => (bool)GetValue(IsReadOnlyProperty);
             set => SetValue(IsReadOnlyProperty, value);
         }
 
-        public static readonly DependencyProperty ShowCheckBoxProperty =
-            DependencyProperty.Register(nameof(ShowCheckBox), typeof(bool), typeof(DynamicDataGrid),
-                new PropertyMetadata(false, OnShowCheckBoxChanged));
-
+        /// <summary>
+        /// 是否顯示選取方塊
+        /// </summary>
         public bool ShowCheckBox
         {
             get => (bool)GetValue(ShowCheckBoxProperty);
             set => SetValue(ShowCheckBoxProperty, value);
         }
 
-        public static readonly DependencyProperty SelectedItemProperty =
-            DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(DynamicDataGrid),
-                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
-
+        /// <summary>
+        /// 選取項目
+        /// </summary>
         public object? SelectedItem
         {
             get => GetValue(SelectedItemProperty);
             set => SetValue(SelectedItemProperty, value);
         }
 
+        /// <summary>
+        /// 選取項目清單
+        /// </summary>
         public IReadOnlyList<object> SelectedItems => _selectedItems.ToArray();
 
-        private readonly HashSet<object> _selectedItems = new();
+        private readonly HashSet<object> _selectedItems = new HashSet<object>();
 
+        # endregion
+
+        # region OnChanged
+        /// <summary>
+        /// 資料來源改變時觸發
+        /// </summary>
+        /// <param name="d"></param>
+        /// <param name="e"></param>
+        /// <remarks>將</remarks>
         private static void OnDataSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DynamicDataGrid control)
@@ -100,6 +159,11 @@ namespace SeanTool.CSharp.WPF
             }
         }
 
+        /// <summary>
+        /// 欄位定義改變時觸發
+        /// </summary>
+        /// <param name="d"></param>
+        /// <param name="e"></param>
         private static void OnColumnDefinitionsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DynamicDataGrid control)
@@ -108,6 +172,11 @@ namespace SeanTool.CSharp.WPF
             }
         }
 
+        /// <summary>
+        /// 是否顯示選取方塊改變時觸發
+        /// </summary>
+        /// <param name="d"></param>
+        /// <param name="e"></param>
         private static void OnShowCheckBoxChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DynamicDataGrid control)
@@ -116,6 +185,11 @@ namespace SeanTool.CSharp.WPF
             }
         }
 
+        /// <summary>
+        /// 排序欄位或升序降序改變時觸發
+        /// </summary>
+        /// <param name="d"></param>
+        /// <param name="e"></param>
         private static void OnSortChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DynamicDataGrid control)
@@ -125,6 +199,11 @@ namespace SeanTool.CSharp.WPF
             }
         }
 
+        /// <summary>
+        /// 是否唯讀改變時觸發
+        /// </summary>
+        /// <param name="d"></param>
+        /// <param name="e"></param>
         private static void OnEditModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DynamicDataGrid control)
@@ -132,6 +211,14 @@ namespace SeanTool.CSharp.WPF
                 control.UpdateEditability();
             }
         }
+
+        # endregion
+
+        /// <summary>
+        /// 建立 DataGrid 的欄位
+        /// </summary>
+        /// <param name="definitions"></param>
+
 
         private void SetColumns(IEnumerable<DynamicDataGridColumnDefinition>? definitions)
         {
@@ -186,6 +273,12 @@ namespace SeanTool.CSharp.WPF
             MainDataGrid.IsReadOnly = true;
         }
 
+        /// <summary>
+        /// ViewModel 改變時觸發
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// <remarks>目前只有當 DisplayItems 改變時才會作用，將 DynamicDataGrid 的 ItemSource 設定為 DisplayItems</remarks>
         private void ViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(DynamicDataGridViewModel.DisplayItems))

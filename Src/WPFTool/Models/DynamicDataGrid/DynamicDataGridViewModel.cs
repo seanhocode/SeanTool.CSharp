@@ -11,7 +11,15 @@ namespace SeanTool.CSharp.WPF
         private IEnumerable? _displayItems;
         private string? _sortProperty;
         private bool _sortDescending;
+
+        /// <summary>
+        /// DataSource 的項目型別 (Item Type)
+        /// </summary>
         private Type? _itemType;
+
+        /// <summary>
+        /// 是否有手動設定欄位定義
+        /// </summary>
         private bool _hasManualColumnDefinitions;
 
         public DynamicDataGridViewModel()
@@ -81,6 +89,10 @@ namespace SeanTool.CSharp.WPF
 
         public bool CanWrite => DataSource is IList list && !list.IsReadOnly && !list.IsFixedSize;
 
+        /// <summary>
+        /// DataSource 的項目型別 (Item Type)
+        /// </summary>
+        /// <remarks>如果是 IEnumerable<T>，則回傳 T 的型別；如果是非泛型 IEnumerable，則回傳第一個元素的型別；如果無法取得，則回傳 null</remarks>
         public Type? ItemType => _itemType;
 
         public object? CreateNewItem()
@@ -123,19 +135,28 @@ namespace SeanTool.CSharp.WPF
             return true;
         }
 
+        /// <summary>
+        /// 設定欄位定義
+        /// </summary>
+        /// <param name="definitions"></param>
+        /// <remarks>如果沒有傳入則根據 DataSource 的 ItemType 取得，如果 ItemType 是空的則欄位定義預設也會是空的</remarks>
         public void SetColumnDefinitions(IEnumerable<DynamicDataGridColumnDefinition>? definitions)
         {
+            //檢查是否有手動設定欄位定義
             _hasManualColumnDefinitions = definitions is not null;
-            ColumnDefinitions = definitions?.ToArray() ?? (_itemType is null
-                ? Array.Empty<DynamicDataGridColumnDefinition>()
-                : DynamicDataGridPropertyMetadata.Create(_itemType)
-                    .Select(property => new DynamicDataGridColumnDefinition
-                    {
-                        Header = property.Header,
-                        BindingPath = property.Name,
-                        IsReadOnly = property.IsReadOnly
-                    })
-                    .ToArray());
+
+            //如果有手動設定則用手動設定的欄位定義，否則根據 DataSource 的 ItemType 取得欄位定義
+            //如果 ItemType 是空的則欄位定義預設也會是空的
+            ColumnDefinitions = definitions?.ToArray() ?? (
+                _itemType is null ? Array.Empty<DynamicDataGridColumnDefinition>() : 
+                    DynamicDataGridPropertyMetadata.Create(_itemType)
+                        .Select(property => new DynamicDataGridColumnDefinition{
+                                                Header = property.Header,
+                                                BindingPath = property.Name,
+                                                IsReadOnly = property.IsReadOnly
+                                            }
+                        ).ToArray()
+            );
 
             RebuildFilters();
             OnPropertyChanged(nameof(ColumnDefinitions));
@@ -152,14 +173,20 @@ namespace SeanTool.CSharp.WPF
             }
         }
 
+        /// <summary>
+        /// 重新建立 Filters
+        /// </summary>
+        /// <remarks>根據新的 ColumnDefinitions 建立新的 Filter，故要先更新 ColumnDefinitions 再呼叫</remarks>
         private void RebuildFilters()
         {
+            // 解除舊的 Filter 的事件訂閱
             foreach (DynamicDataGridFilterViewModel filter in Filters)
             {
                 filter.PropertyChanged -= FilterChanged;
             }
-
             Filters.Clear();
+
+            // 根據新的 ColumnDefinitions 建立新的 Filter
             foreach (DynamicDataGridColumnDefinition definition in ColumnDefinitions)
             {
                 Type? propertyType = _itemType?.GetProperty(definition.BindingPath)?.PropertyType;
@@ -198,6 +225,11 @@ namespace SeanTool.CSharp.WPF
                 SortDescending);
         }
 
+        /// <summary>
+        /// 取得物件的項目型別 (Item Type)
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns>如果是 IEnumerable<T>，則回傳 T 的型別；如果是非泛型 IEnumerable，則回傳第一個元素的型別；如果無法取得，則回傳 null</returns>
         private static Type? GetItemType(object? source)
         {
             if (source is null) return null;

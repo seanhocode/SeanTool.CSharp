@@ -15,9 +15,10 @@
         </Grid.RowDefinitions>
 
         <WPFTool:DynamicDataGrid x:Name="PersonDataGrid" Grid.Row="0"
-                DataSource="{Binding PersonList}"
+            DataSource="{Binding PersonList}"
             ColumnDefinitions="{Binding ColumnDefinitions}"
-            ShowCheckBox="True" />
+            ShowCheckBox="True" Cursor="Hand" IsReadOnly="False" />
+
         <Button Grid.Row="1" Click="CheckDataValue" Height="30" Margin="5">CheckValue</Button>
         <Button Grid.Row="2" Click="ShowSelectedItems" Height="30" Margin="5">顯示選取項目</Button>
     </Grid>

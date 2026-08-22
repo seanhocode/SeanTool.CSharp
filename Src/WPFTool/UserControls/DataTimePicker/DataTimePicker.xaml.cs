@@ -22,12 +22,6 @@ namespace SeanTool.CSharp.WPF
                 typeof(DataTimePicker),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedDateTimeChanged));
 
-        public DateTime? SelectedDateTime
-        {
-            get => (DateTime?)GetValue(SelectedDateTimeProperty);
-            set => SetValue(SelectedDateTimeProperty, value);
-        }
-
         public static readonly DependencyProperty IsReadOnlyProperty =
             DependencyProperty.Register(
                 nameof(IsReadOnly),
@@ -35,14 +29,20 @@ namespace SeanTool.CSharp.WPF
                 typeof(DataTimePicker),
                 new PropertyMetadata(false, OnIsReadOnlyChanged));
 
+        public static readonly DependencyProperty ErrorMessageProperty =
+            DependencyProperty.Register(nameof(ErrorMessage), typeof(string), typeof(DataTimePicker));
+
+        public DateTime? SelectedDateTime
+        {
+            get => (DateTime?)GetValue(SelectedDateTimeProperty);
+            set => SetValue(SelectedDateTimeProperty, value);
+        }
+
         public bool IsReadOnly
         {
             get => (bool)GetValue(IsReadOnlyProperty);
             set => SetValue(IsReadOnlyProperty, value);
         }
-
-        public static readonly DependencyProperty ErrorMessageProperty =
-            DependencyProperty.Register(nameof(ErrorMessage), typeof(string), typeof(DataTimePicker));
 
         public string? ErrorMessage
         {
