@@ -10,5 +10,21 @@
     <Description>WPFTool</Description>
     <PackageTags>tool;wpf;net8;net10</PackageTags>
   </PropertyGroup>
+  
+  <!--<ItemGroup>
+    <Compile Remove="Styles\**" />
+    <EmbeddedResource Remove="Styles\**" />
+    <None Remove="Styles\**" />
+    <Page Remove="Styles\**" />
+  </ItemGroup>-->
+  
+  <ItemGroup>
+    <Compile Remove="UserControls\DynamicDataGrid\DynamicDataGridFilterControl.xaml.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Themes\" />
+    <PackageReference Include="WPF-UI" />
+  </ItemGroup>
 
 </Project>

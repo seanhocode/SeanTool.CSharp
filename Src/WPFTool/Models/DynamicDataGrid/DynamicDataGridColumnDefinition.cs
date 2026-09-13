@@ -1,6 +1,7 @@
 ﻿using System.Windows.Controls;
+using SeanTool.CSharp.WPFTool;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool
 {
     public class DynamicDataGridColumnDefinition
     {
@@ -28,5 +29,11 @@ namespace SeanTool.CSharp.WPF
         /// 是否唯讀
         /// </summary>
         public bool IsReadOnly { get; set; } = false;
+
+        /// <summary>
+        /// 篩選值型別；未指定時由欄位型別自動推斷
+        /// </summary>
+        public FilterValueType? FilterValueType { get; set; }
+
     }
 }

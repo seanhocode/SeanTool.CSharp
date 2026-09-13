@@ -1,6 +1,7 @@
 ﻿using System.Windows;
+using SeanTool.CSharp.WPFTool.Test.Models;
 
-namespace SeanTool.CSharp.WPF.Test
+namespace SeanTool.CSharp.WPFTool.Test
 {
     /// <summary>
     /// ModelEditorTestWindow.xaml 的互動邏輯

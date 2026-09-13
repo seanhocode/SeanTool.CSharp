@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36401.2 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SingleFileSetting", "Src\SingleFileSetting\SingleFileSetting.csproj", "{17F5851F-7C3B-461C-B2A9-52A92C62DD2F}"
 EndProject
@@ -39,7 +39,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlTool.Test", "Tests\SQLTo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool", "Src\WPFTool\WPFTool.csproj", "{6B46B6C6-16CF-410A-A3D7-1B71065041D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool.Test", "Tests\WPFTool.Test\WPFTool.Test.csproj", "{C4773720-671A-4F0E-93B0-857E6200079C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool.UserTest", "Tests\WPFTool.Test\WPFTool.UserTest.csproj", "{C4773720-671A-4F0E-93B0-857E6200079C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Data", "Tests\Test.Data\Test.Data.csproj", "{79A62872-F4DD-4567-8D4C-FDC7456697E2}"
 EndProject
@@ -47,7 +47,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{D7D0B445-FA5
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{82780D88-71DC-427F-80C3-6468D230575E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool.UnitTest", "Tests\WPFTool.UnitTest\WPFTool.UnitTest.csproj", "{5F74AB13-E323-4441-B001-E0328B20FA5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFTool.Test", "Tests\WPFTool.UnitTest\WPFTool.Test.csproj", "{5F74AB13-E323-4441-B001-E0328B20FA5E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
