@@ -68,6 +68,7 @@ jobs:
       # Step.3 Clean, restore, build and pack
       # ---------------------------------------------------------
       - name: Pack Changed Projects
+        if: ${{ steps.detect.outputs.changed_projects != '' }}
         run: ./Shell/CICD.ps1 -Command PackProjects -ChangedProjects "${{ steps.detect.outputs.changed_projects }}" -OutputDir ./nupkg
 
 # secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權

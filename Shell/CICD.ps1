@@ -309,7 +309,14 @@ switch ($Command) {
     "GenerateTimestamp" { Set-ReleaseTimestamp }
     "GetChangedFiles"   { Get-ChangedFiles -Before $Before -After $After }
     "GetChangedProjects" { Get-ChangedProjects -IncludeProjects $IncludeProjects }
-    "PackProjects"      { Invoke-PackProjects -ChangedProjects $ChangedProjects -OutputDir $OutputDir }
+    "PackProjects"      {
+        if ([string]::IsNullOrWhiteSpace($ChangedProjects)) {
+            Write-Host "No changed projects. Skip packing."
+            break
+        }
+
+        Invoke-PackProjects -ChangedProjects $ChangedProjects -OutputDir $OutputDir
+    }
     "PublishPackages"   {
         Publish-Packages `
             -GitHubToken $GitHubToken `
