@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 
-namespace SeanTool.CSharp.Forms
+namespace SeanTool.CSharp.FormControlTool
 {
     /* ToDo
      * 1. SortCompare

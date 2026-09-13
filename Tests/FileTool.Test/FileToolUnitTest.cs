@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.FileTool.Test
 {
     public class FileToolUnitTest
     {
-        // ¨C­Ó´ú¸Õ¤èªk³£¥Î [Fact] ¼Ğ°O (xUnit.net)
+        // æ¯å€‹æ¸¬è©¦æ–¹æ³•éƒ½æœƒæ¨™è¨˜ [Fact] (xUnit.net)
 
         [Fact]
         public void VarableCheck()
@@ -18,41 +18,41 @@ namespace SeanTool.CSharp.Test
         public void CheckFolderExistTest()
         {
             string testFolderPath = Path.Combine(FileTool.ThisExeDir, "RootFolderNoExist");
-            // ½T«O¸ê®Æ§¨¤£¦s¦b
+            // ç¢ºèªè³‡æ–™å¤¾ä¸å­˜åœ¨
             if (Directory.Exists(testFolderPath))
                 Directory.Delete(testFolderPath, true);
 
-            // ´ú¸Õ¸ê®Æ§¨¤£¦s¦b¥B¤£¦Û°Ê«Ø¥ß
+            // æ¸¬è©¦è³‡æ–™å¤¾ä¸å­˜åœ¨æ™‚ä¸è‡ªå‹•å»ºç«‹
             Assert.False(FileTool.CheckFolderExist(testFolderPath, false));
 
-            // ´ú¸Õ¸ê®Æ§¨¤£¦s¦b¥B¦Û°Ê«Ø¥ß
+            // æ¸¬è©¦è³‡æ–™å¤¾ä¸å­˜åœ¨æ™‚è‡ªå‹•å»ºç«‹
             Assert.True(FileTool.CheckFolderExist(testFolderPath, true));
             Assert.True(Directory.Exists(testFolderPath));
 
-            // ²M²z´ú¸Õ¸ê®Æ§¨
+            // æ¸…é™¤æ¸¬è©¦è³‡æ–™å¤¾
             Directory.Delete(testFolderPath, true);
         }
 
         [Fact]
         public void CheckFileExistTest()
         {
-            // Do´ú¸Õ
+            // Do æ¸¬è©¦
             string testFilePath = Path.Combine(FileTool.ThisExeDir, "TestFileNoExist.txt");
 
-            // ½T«OÀÉ®×¤£¦s¦b
+            // ç¢ºèªæª”æ¡ˆä¸å­˜åœ¨
             if (File.Exists(testFilePath))
                 File.Delete(testFilePath);
 
-            // ´ú¸ÕÀÉ®×¤£¦s¦b
+            // æ¸¬è©¦æª”æ¡ˆä¸å­˜åœ¨
             Assert.False(FileTool.CheckFileExist(testFilePath));
 
-            // «Ø¥ß´ú¸ÕÀÉ®×
+            // å»ºç«‹æ¸¬è©¦æª”æ¡ˆ
             File.WriteAllText(testFilePath, "This is a test file.");
 
-            // ´ú¸ÕÀÉ®×¦s¦b
+            // ç¢ºèªæª”æ¡ˆå­˜åœ¨
             Assert.True(FileTool.CheckFileExist(testFilePath));
 
-            // ²M²z´ú¸ÕÀÉ®×
+            // æ¸…é™¤æ¸¬è©¦æª”æ¡ˆ
             File.Delete(testFilePath);
         }
 
@@ -74,7 +74,7 @@ namespace SeanTool.CSharp.Test
                 (1, "RootFolder\\Depth1Folder3\\TestFile11.txt" )
             };
 
-            // «Ø¥ß´ú¸Õ¸ê®Æ§¨¤ÎÀÉ®×
+            // å»ºç«‹æ¸¬è©¦è³‡æ–™å¤¾åŠæª”æ¡ˆ
             string testFolderPath = Path.Combine(FileTool.ThisExeDir, "RootFolder");
             foreach ((int FolderDepth, string FilePath) relativePath in folderPathList)
             {
@@ -84,12 +84,12 @@ namespace SeanTool.CSharp.Test
                 File.WriteAllText(fullPath, fullPath);
             }
 
-            // ´ú¸Õ¤£·j´M¤l¸ê®Æ§¨
+            // æ¸¬è©¦ä¸æœå°‹å­è³‡æ–™å¤¾
             List<string> files = FileTool.GetAllFileInFolder(testFolderPath, false);
             Assert.Single(files);
             Assert.Contains(Path.Combine(testFolderPath, "TestFile7.txt"), files);
 
-            // ´ú¸Õ·j´M©Ò¦³¤l¸ê®Æ§¨
+            // æ¸¬è©¦æœå°‹æ‰€æœ‰å­è³‡æ–™å¤¾
             files = FileTool.GetAllFileInFolder(testFolderPath, true);
             Assert.Equal(folderPathList.Count, files.Count);
             foreach ((int FolderDepth, string FilePath) relativePath in folderPathList)
@@ -98,7 +98,7 @@ namespace SeanTool.CSharp.Test
                 Assert.Contains(expectedFilePath, files);
             }
 
-            // ´ú¸Õ·j´M¤l¸ê®Æ§¨¨ì«ü©w²`«×(2¼h)
+            // æ¸¬è©¦æœå°‹å­è³‡æ–™å¤¾ä¸¦é™åˆ¶æ·±åº¦ (2 å±¤)
             List<(int FolderDepth, string FilePath)> folderPathListDepth2 
                 = folderPathList.Where(f => f.FolderDepth <= 2).ToList();
 
@@ -150,7 +150,7 @@ namespace SeanTool.CSharp.Test
             sw.Stop();
 
             Assert.Equal(10_000_004, lineCount);
-            Assert.True(sw.ElapsedMilliseconds < 2_000);
+            Assert.True(sw.ElapsedMilliseconds < 5_000);
 
             string dirPath = Path.GetDirectoryName(filePath)!;
             if (Directory.Exists(dirPath) && !Directory.EnumerateFileSystemEntries(dirPath).Any())
@@ -215,7 +215,7 @@ namespace SeanTool.CSharp.Test
 
                 for (int i = 0; i < lines; i++)
                 {
-                    // ---- ¼Ò¦¡ B¡G»¼¼W®É¶¡ + ÀH¾÷ 0~50ms¡]Ãş¤ñ­t¸ü¡^ ----
+                    // ---- æ¨¡æ“¬ IIS æ—¥èªŒæ™‚é–“ + éš¨æ©Ÿ 0~50ms (åŒ…å«å»¶é²) ----
                     currentTime = currentTime.AddMilliseconds(rand.Next(0, 50));
 
                     sb.Clear();

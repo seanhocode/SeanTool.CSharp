@@ -4,7 +4,7 @@ using System.Data;
 
 // 強制關閉平行測試，讓測試一個接一個跑
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.SqlTool.Test
 {
     // 1. 定義測試資料模型
     [TableName("TestUsers")]
