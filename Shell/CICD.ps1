@@ -11,6 +11,11 @@ param(
     [string]$ChangedProjects,
     [string]$GitHubToken,
     [string]$NugetSource,
+    [string]$GitHubActor,
+    [string]$ReleaseTag = "latest-tools",
+    [string]$ReleaseTitle = "Latest Tools Nupkg",
+    [string]$ReleaseRepo = "seanhocode/SeanTool.CSharp",
+    [string]$ReleaseTime,
     [string]$OutputDir = "./nupkg"
 )
 
@@ -32,6 +37,15 @@ function Import-DotNetTool {
     return $dotNetToolPath
 }
 
+function Import-GitTool {
+    $gitToolPath = Join-Path $PSScriptRoot "SeanTool.Scripts\Shell\Windows\PowerShell\Git\GitBaseTool.ps1"
+    if (-not (Test-Path $gitToolPath)) {
+        throw "GitBaseTool.ps1 not found: $gitToolPath. Check out submodules before updating releases."
+    }
+
+    return $gitToolPath
+}
+
 function Import-EnvFile {
     <#
     .SYNOPSIS
@@ -46,6 +60,12 @@ function Import-EnvFile {
     param([Parameter(Mandatory = $true)][string]$EnvFile)
 
     Get-Content $EnvFile | Add-Content $env:GITHUB_ENV
+}
+
+function Set-ReleaseTimestamp {
+    $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
+    Add-Content $env:GITHUB_ENV "RELEASE_TIME=$timestamp"
+    Write-Host "Release timestamp: $timestamp"
 }
 
 function Get-ChangedFiles {
@@ -186,8 +206,107 @@ function Publish-Packages {
         }
 }
 
+function Download-LatestPackages {
+    param(
+        [Parameter(Mandatory = $true)][string]$IncludeProjects,
+        [Parameter(Mandatory = $true)][string]$GitHubToken,
+        [Parameter(Mandatory = $true)][string]$GitHubActor,
+        [Parameter(Mandatory = $true)][string]$NugetSource,
+        [Parameter(Mandatory = $true)][string]$OutputDir
+    )
+
+    New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+    $cacheLine = dotnet nuget locals global-packages --list
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to locate the NuGet global package cache."
+    }
+
+    $cachePath = ($cacheLine -split ":\s*", 2)[1].Trim().TrimEnd("\", "/")
+    if ([string]::IsNullOrWhiteSpace($cachePath)) {
+        throw "NuGet global package cache path is empty."
+    }
+
+    $tempPath = Join-Path $PWD "temp_fetch"
+    try {
+        foreach ($project in ($IncludeProjects -split ';' | Where-Object { $_.Trim() })) {
+            $packageName = "SeanTool.CSharp.$($project.Trim())"
+            New-Item -ItemType Directory -Force -Path $tempPath | Out-Null
+            Push-Location $tempPath
+            try {
+                @'
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
+'@ | Set-Content -Path "temp_fetch.csproj"
+
+                dotnet new nugetconfig --force
+                dotnet nuget add source $NugetSource `
+                    --name github `
+                    --username $GitHubActor `
+                    --password $GitHubToken `
+                    --store-password-in-clear-text `
+                    --configfile nuget.config
+                dotnet add package $packageName --version "*"
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to download package '$packageName'."
+                }
+            }
+            finally {
+                Pop-Location
+            }
+
+            $packagePath = Join-Path $cachePath $packageName.ToLowerInvariant()
+            if (-not (Test-Path $packagePath)) {
+                throw "NuGet cache folder not found: $packagePath"
+            }
+
+            Get-ChildItem -Path $packagePath -Filter "*.nupkg" -Recurse |
+                Copy-Item -Destination $OutputDir -Force
+            Write-Host "Collected $packageName"
+            Remove-Item -Path $tempPath -Recurse -Force
+        }
+    }
+    finally {
+        if (Test-Path $tempPath) {
+            Remove-Item -Path $tempPath -Recurse -Force
+        }
+    }
+}
+
+function Update-ReleaseAssets {
+    param(
+        [Parameter(Mandatory = $true)][string]$GitHubToken,
+        [Parameter(Mandatory = $true)][string]$ReleaseRepo,
+        [Parameter(Mandatory = $true)][string]$ReleaseTag,
+        [Parameter(Mandatory = $true)][string]$ReleaseTitle,
+        [Parameter(Mandatory = $true)][string]$ReleaseTime,
+        [Parameter(Mandatory = $true)][string]$OutputDir
+    )
+
+    . (Import-GitTool)
+    Update-GitHubRelease `
+        -FilePath (Join-Path $OutputDir "*.nupkg") `
+        -Repo $ReleaseRepo `
+        -Tag $ReleaseTag `
+        -Token $GitHubToken `
+        -Title $ReleaseTitle
+
+    gh release edit $ReleaseTag `
+        --repo $ReleaseRepo `
+        --title $ReleaseTitle `
+        --notes "## 所有工具最新版本`n此 Release 由系統自動更新，包含所有工具專案的最新 `.nupkg` 檔。`n更新時間: $ReleaseTime (UTC)" `
+        --latest
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to update release metadata for '$ReleaseTag'."
+    }
+}
+
 switch ($Command) {
     "ImportEnvFile"     { Import-EnvFile -EnvFile $EnvFile }
+    "GenerateTimestamp" { Set-ReleaseTimestamp }
     "GetChangedFiles"   { Get-ChangedFiles -Before $Before -After $After }
     "GetChangedProjects" { Get-ChangedProjects -IncludeProjects $IncludeProjects }
     "PackProjects"      { Invoke-PackProjects -ChangedProjects $ChangedProjects -OutputDir $OutputDir }
@@ -195,6 +314,23 @@ switch ($Command) {
         Publish-Packages `
             -GitHubToken $GitHubToken `
             -NugetSource $NugetSource `
+            -OutputDir $OutputDir
+    }
+    "DownloadLatestPackages" {
+        Download-LatestPackages `
+            -IncludeProjects $IncludeProjects `
+            -GitHubToken $GitHubToken `
+            -GitHubActor $GitHubActor `
+            -NugetSource $NugetSource `
+            -OutputDir $OutputDir
+    }
+    "UpdateReleaseAssets" {
+        Update-ReleaseAssets `
+            -GitHubToken $GitHubToken `
+            -ReleaseRepo $ReleaseRepo `
+            -ReleaseTag $ReleaseTag `
+            -ReleaseTitle $ReleaseTitle `
+            -ReleaseTime $ReleaseTime `
             -OutputDir $OutputDir
     }
     default { throw "Unknown -Command '$Command'" }
