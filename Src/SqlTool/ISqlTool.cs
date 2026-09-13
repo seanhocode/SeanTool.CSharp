@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace SeanTool.CSharp
+namespace SeanTool.CSharp.SqlTool
 {
     public interface ISqlTool : IDisposable, IAsyncDisposable
     {

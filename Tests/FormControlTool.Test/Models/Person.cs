@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using Test.Data.Models;
 
-namespace SeanTool.CSharp.Forms.Test
+namespace SeanTool.CSharp.FormControlTool.Test.Models
 {
 
     [DisplayName("使用者基本資訊")]

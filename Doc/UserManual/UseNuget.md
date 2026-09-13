@@ -5,9 +5,9 @@
     3. 必須勾選以下權限：
         - write:packages (用於發布套件)
         - read:packages (用於下載套件)
-    - ![](./image/UseNuget/DeveloperSettingsLocate.png)
-    - ![](./image/UseNuget/CreateClassicTokenLocate.png)
-    - ![](./image/UseNuget/CreateClassicTokenSetting.png)
+    - ![](../image/UseNuget/DeveloperSettingsLocate.png)
+    - ![](../image/UseNuget/CreateClassicTokenLocate.png)
+    - ![](../image/UseNuget/CreateClassicTokenSetting.png)
 
 2. 於新增``nuget.config``
     ```config=
@@ -25,16 +25,16 @@
         </packageSourceCredentials>
     </configuration>
     ```
-    - ![](./image/UseNuget/NugetConfigLocate.png)
+    - ![](../image/UseNuget/NugetConfigLocate.png)
 
 3. 於Nuget套件管理員安裝套件
-    - ![](./image/UseNuget/NuGetSourceLocate.png)
+    - ![](../image/UseNuget/NuGetSourceLocate.png)
     - 或手動設定(待確認)
-    - ![](./image/UseNuget/NuGetSourceSetting.png)
+    - ![](../image/UseNuget/NuGetSourceSetting.png)
 
 4. CI/CD的yml設定
     1. 把``PAT``放到專案repo的``GitHub Secrets``
-        - ![](./image/UseNuget/AddRepositorySercets.png)
+        - ![](../image/UseNuget/AddRepositorySercets.png)
     2. ``permissions``加入``packages: read``
     3. checkout之後、restore之前加入
         ```yml=
@@ -48,4 +48,4 @@
                         --store-password-in-clear-text
                 shell: pwsh
         ```
-        - ![](./image/UseNuget/YMLAddNugetSetting.png)
+        - ![](../image/UseNuget/YMLAddNugetSetting.png)

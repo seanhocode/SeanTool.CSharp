@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Src\WPFTool\WPFTool.csproj" />
     <ProjectReference Include="..\Test.Data\Test.Data.csproj" />
+    <PackageReference Include="WPF-UI" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace SeanTool.CSharp.Forms
+namespace SeanTool.CSharp.FormControlTool
 {
     // 用來標記字串屬性是「檔案選取」還是「資料夾選取」
     [AttributeUsage(AttributeTargets.Property)]

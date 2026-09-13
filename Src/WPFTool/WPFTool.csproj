@@ -6,9 +6,25 @@
     <TargetFrameworks>$(WindowsTfms)</TargetFrameworks>
     <UseWPF>true</UseWPF>
     <PackageId>SeanTool.CSharp.WPFTool</PackageId>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Description>WPFTool</Description>
     <PackageTags>tool;wpf;net8;net10</PackageTags>
   </PropertyGroup>
+  
+  <!--<ItemGroup>
+    <Compile Remove="Styles\**" />
+    <EmbeddedResource Remove="Styles\**" />
+    <None Remove="Styles\**" />
+    <Page Remove="Styles\**" />
+  </ItemGroup>-->
+  
+  <ItemGroup>
+    <Compile Remove="UserControls\DynamicDataGrid\DynamicDataGridFilterControl.xaml.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Themes\" />
+    <PackageReference Include="WPF-UI" />
+  </ItemGroup>
 
 </Project>

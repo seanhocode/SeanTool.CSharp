@@ -1,15 +1,15 @@
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection; // ¥Î©ó IServiceCollection ¼ÒÀÀ (¦pªG»İ­n´ú Extension)
+using Microsoft.Extensions.DependencyInjection; // ç”¨æ–¼ IServiceCollection æ¨¡æ“¬ (å¦‚æœéœ€è¦æ¸¬ Extension)
 using RichardSzalay.MockHttp;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.ApiTool.Test
 {
     public class ApiToolExtensionsTest
     {
-        [Fact(DisplayName = "AddApiTool À³¦¨¥\µù¥U IApiTool ¬° Singleton")]
+        [Fact(DisplayName = "AddApiTool æ‡‰æˆåŠŸè¨»å†Š IApiTool ç‚º Singleton")]
         public void AddApiTool_ShouldRegisterService_AsSingleton()
         {
             // Arrange
@@ -19,17 +19,17 @@ namespace SeanTool.CSharp.Test
             services.AddApiTool();
             var provider = services.BuildServiceProvider();
 
-            // Assert 1: ÀË¬d¬O§_¯à¸ÑªR¤¶­±
+            // Assert 1: æª¢æŸ¥æ˜¯å¦èƒ½è§£æä»‹é¢
             var apiTool = provider.GetService<IApiTool>();
-            apiTool.Should().NotBeNull("¦]¬° AddApiTool À³¸Ó­nµù¥U IApiTool");
-            apiTool.Should().BeOfType<ApiTool>("¹ê§@«¬§OÀ³¬° ApiTool");
+            apiTool.Should().NotBeNull("å› ç‚º AddApiTool æ‡‰è©²è¦è¨»å†Š IApiTool");
+            apiTool.Should().BeOfType<ApiTool>("å¯¦ä½œå‹åˆ¥æ‡‰ç‚º ApiTool");
 
-            // Assert 2: ÀË¬d¥Í©R¶g´Á (Singleton)
+            // Assert 2: æª¢æŸ¥ç”Ÿå‘½é€±æœŸ (Singleton)
             var apiTool2 = provider.GetService<IApiTool>();
-            apiTool.Should().BeSameAs(apiTool2, "¦]¬°µù¥U¬° Singleton¡A¦h¦¸¸ÑªRÀ³±o¨ì¦P¤@­Ó°õ¦æ­ÓÅé");
+            apiTool.Should().BeSameAs(apiTool2, "å› ç‚ºè¨»å†Šç‚º Singletonï¼Œå¤šæ¬¡è§£ææ‡‰å¾—åˆ°åŒä¸€å€‹åŸ·è¡Œå€‹é«”");
         }
 
-        [Fact(DisplayName = "AddApiTool À³¥¿½T³]©w HttpClient ªº Timeout ¬° 30 ¬í")]
+        [Fact(DisplayName = "AddApiTool æ‡‰æ­£ç¢ºè¨­å®š HttpClient çš„ Timeout ç‚º 30 ç§’")]
         public void AddApiTool_ShouldConfigureHttpClient_WithCorrectTimeout()
         {
             // Arrange
@@ -39,12 +39,12 @@ namespace SeanTool.CSharp.Test
             services.AddApiTool();
             var provider = services.BuildServiceProvider();
 
-            // ¨ú±o IHttpClientFactory ¨Ó²£¥Í¨ã¦W Client
+            // å–å¾— IHttpClientFactory ä¾†ç”¢ç”Ÿå…·å Client
             var factory = provider.GetRequiredService<IHttpClientFactory>();
             var client = factory.CreateClient("ApiTool");
 
             // Assert
-            // ÅçÃÒÂX¥R¤èªk¤ºªº client.Timeout = TimeSpan.FromSeconds(30); ¬O§_¥Í®Ä
+            // é©—è­‰æ“´å……æ–¹æ³•å…§çš„ client.Timeout = TimeSpan.FromSeconds(30); æ˜¯å¦ç”Ÿæ•ˆ
             client.Timeout.Should().Be(TimeSpan.FromSeconds(30));
         }
     }
@@ -67,29 +67,29 @@ namespace SeanTool.CSharp.Test
 
         public ApiToolUnitTest_Online()
         {
-            // 1. «Ø¥ß¤@­ÓÂ²³æªº Factory¡A¦^¶Ç "¯u¹ê" ªº HttpClient
+            // 1. å»ºç«‹ä¸€å€‹ç°¡å–®çš„ Factoryï¼Œå›å‚³ "çœŸå¯¦" çš„ HttpClient
             IHttpClientFactory realFactory = new RealHttpClientFactory();
 
-            // 2. ª`¤J Factory «Ø¥ß ApiTool ¹êÅé
+            // 2. æ³¨å…¥ Factory å»ºç«‹ ApiTool å¯¦é«”
             _ApiTool = new ApiTool(realFactory);
         }
 
-        [Fact(DisplayName = "½u¤W´ú¸Õ - GetAsync À³¯à¨ú±o¯u¹ê¸ê®Æ")]
+        [Fact(DisplayName = "ç·šä¸Šæ¸¬è©¦ - GetAsync æ‡‰èƒ½å–å¾—çœŸå¯¦è³‡æ–™")]
         public async Task GetAsyncOnlineTest()
         {
             // Arrange
             var url = "https://jsonplaceholder.typicode.com/posts/1";
 
             // Act
-            // ¨Ï¥Î¹êÅé¤èªk _apiTool
+            // ä½¿ç”¨å¯¦é«”æ–¹æ³• _apiTool
             var result = await _ApiTool.GetAsync<JsonElement>(url);
 
             // Assert
-            // ¨Ï¥Î FluentAssertions ­·®æ (©Î«O«ù Assert.Equal ¥ç¥i)
+            // ä½¿ç”¨ FluentAssertions é¢¨æ ¼ (æˆ–ä¿æŒ Assert.Equal äº¦å¯)
             result.GetProperty("id").GetInt32().Should().Be(1);
         }
 
-        [Fact(DisplayName = "½u¤W´ú¸Õ - PostAsync À³¯à¦¨¥\µo°e¸ê®Æ")]
+        [Fact(DisplayName = "ç·šä¸Šæ¸¬è©¦ - PostAsync æ‡‰èƒ½æˆåŠŸç™¼é€è³‡æ–™")]
         public async Task PostAsyncOnlineTest()
         {
             // Arrange
@@ -103,27 +103,27 @@ namespace SeanTool.CSharp.Test
             };
 
             // Act
-            // ¹w´Á¦^¶Ç«¬§O¬° JsonElement
+            // é æœŸå›å‚³å‹åˆ¥ç‚º JsonElement
             var result = await _ApiTool.PostAsync<PostPayloadTest, JsonElement>(url, payload);
 
             // Assert
-            // JsonPlaceholder ¹ï©ó¦¨¥\ªº POST ½Ğ¨D¡A³q±`·|¦^¶Ç©T©wªº ID 101
+            // JsonPlaceholder å°æ–¼æˆåŠŸçš„ POST è«‹æ±‚ï¼Œé€šå¸¸æœƒå›å‚³å›ºå®šçš„ ID 101
             result.GetProperty("id").GetInt32().Should().Be(101);
 
-            // ÅçÃÒ¦^¶Çªº¤º®e¬O§_¥]§t­è­è¶Ç°eªº title
+            // é©—è­‰å›å‚³çš„å…§å®¹æ˜¯å¦åŒ…å«å‰›å‰›å‚³é€çš„ title
             result.GetProperty("title").GetString().Should().Be("foo");
         }
 
         // ==========================================
-        // »²§UÃş§O¡G¯u¹êªº HttpClientFactory
-        // §@¥Î¡G¦^¶Ç¤@­Ó¯uªº¯à¤Wºôªº HttpClient
+        // è¼”åŠ©é¡åˆ¥ï¼šçœŸå¯¦çš„ HttpClientFactory
+        // ä½œç”¨ï¼šå›å‚³ä¸€å€‹çœŸçš„èƒ½ä¸Šç¶²çš„ HttpClient
         // ==========================================
         private class RealHttpClientFactory : IHttpClientFactory
         {
             public HttpClient CreateClient(string name)
             {
-                // ¨C¦¸³£¦^¶Ç¤@­Ó·sªº¯u¹ê Client
-                // ³o¸Ì¨S¦³³]©w BaseAddress¡A¦]¬°´ú¸Õ®×¨Ò¤¤ªº URL ³£¬O§¹¾ãªºµ´¹ï¸ô®|
+                // æ¯æ¬¡éƒ½å›å‚³ä¸€å€‹æ–°çš„çœŸå¯¦ Client
+                // é€™è£¡æ²’æœ‰è¨­å®š BaseAddressï¼Œå› ç‚ºæ¸¬è©¦æ¡ˆä¾‹ä¸­çš„ URL éƒ½æ˜¯å®Œæ•´çš„çµ•å°è·¯å¾‘
                 return new HttpClient();
             }
         }
@@ -135,7 +135,7 @@ namespace SeanTool.CSharp.Test
         private readonly HttpClient _MockHttpClient;
         private readonly ApiTool _ApiTool;
 
-        // ¥Î¨Ó¼ÒÀÀ¦^¶Çªº¸ê®Æ¼Ò«¬
+        // ç”¨ä¾†æ¨¡æ“¬å›å‚³çš„è³‡æ–™æ¨¡å‹
         private class TestResponse
         {
             public int Id { get; set; }
@@ -144,18 +144,18 @@ namespace SeanTool.CSharp.Test
 
         public ApiToolUnitTest_Local()
         {
-            // 1. ªì©l¤Æ Mock Http Handler
+            // 1. åˆå§‹åŒ– Mock Http Handler
             _MockHttp = new MockHttpMessageHandler();
 
-            // 2. «Ø¥ß±a¦³ Mock Handler ªº HttpClient
+            // 2. å»ºç«‹å¸¶æœ‰ Mock Handler çš„ HttpClient
             _MockHttpClient = _MockHttp.ToHttpClient();
-            // ­«­n¡G¥²¶·³]©w BaseAddress¡A§_«h ApiTool ­Y¥u¶Ç¤J¬Û¹ï¸ô®|·|³ø¿ù
+            // é‡è¦ï¼šå¿…é ˆè¨­å®š BaseAddressï¼Œå¦å‰‡ ApiTool è‹¥åªå‚³å…¥ç›¸å°è·¯å¾‘æœƒå ±éŒ¯
             _MockHttpClient.BaseAddress = new Uri("http://test.com/");
 
-            // 3. «Ø¥ß¤@­Ó°²ªº Factory¡AÅı¥¦¥Ã»·¦^¶Ç¤W­±¨º­Ó Mock ªº Client
+            // 3. å»ºç«‹ä¸€å€‹å‡çš„ Factoryï¼Œè®“å®ƒæ°¸é å›å‚³ä¸Šé¢é‚£å€‹ Mock çš„ Client
             IHttpClientFactory fakeFactory = new FakeHttpClientFactory(_MockHttpClient);
 
-            // 4. ¥¿±`¹ê¨Ò¤Æ ApiTool (Dependency Injection)
+            // 4. æ­£å¸¸å¯¦ä¾‹åŒ– ApiTool (Dependency Injection)
             _ApiTool = new ApiTool(fakeFactory);
         }
 
@@ -165,18 +165,18 @@ namespace SeanTool.CSharp.Test
             _MockHttp.Dispose();
         }
 
-        [Fact(DisplayName = "GetAsync À³¯à¥¿½T¸ÑªR JSON ¨Ã¦^¶Çª«¥ó")]
+        [Fact(DisplayName = "GetAsync æ‡‰èƒ½æ­£ç¢ºè§£æ JSON ä¸¦å›å‚³ç‰©ä»¶")]
         public async Task GetAsync_ShouldReturnObject_WhenResponseIsSuccess()
         {
             // Arrange
-            var relativeUrl = "/api/users/1"; // ¨Ï¥Î¬Û¹ï¸ô®|´ú¸Õ
+            var relativeUrl = "/api/users/1"; // ä½¿ç”¨ç›¸å°è·¯å¾‘æ¸¬è©¦
             var expectedResponse = new TestResponse { Id = 1, Name = "Sean" };
 
-            // ³]©w Mock¡G·í©I¥s¦¹ URL ®É¡A¦^¶Ç 200 OK »P JSON
+            // è¨­å®š Mockï¼šç•¶å‘¼å«æ­¤ URL æ™‚ï¼Œå›å‚³ 200 OK èˆ‡ JSON
             _MockHttp.When("http://test.com/api/users/1")
                      .Respond("application/json", JsonSerializer.Serialize(expectedResponse));
 
-            // Act (¨Ï¥Î¹êÅé¤èªk©I¥s)
+            // Act (ä½¿ç”¨å¯¦é«”æ–¹æ³•å‘¼å«)
             var result = await _ApiTool.GetAsync<TestResponse>(relativeUrl);
 
             // Assert
@@ -185,7 +185,7 @@ namespace SeanTool.CSharp.Test
             result.Name.Should().Be("Sean");
         }
 
-        [Fact(DisplayName = "GetAsync À³¯à¥¿½T³B²z QueryString »P Header")]
+        [Fact(DisplayName = "GetAsync æ‡‰èƒ½æ­£ç¢ºè™•ç† QueryString èˆ‡ Header")]
         public async Task GetAsync_ShouldIncludeQueryStringAndHeaders()
         {
             // Arrange
@@ -201,8 +201,8 @@ namespace SeanTool.CSharp.Test
             };
             var token = "secret-token";
 
-            // ³]©w Mock¡G¹w´Á·|¦¬¨ì±a¦³°Ñ¼Æªº URL ©M¯S©wªº Header
-            // ª`·N¡GMockHttp ·|¤ñ¹ï§¹¾ãªº QueryString
+            // è¨­å®š Mockï¼šé æœŸæœƒæ”¶åˆ°å¸¶æœ‰åƒæ•¸çš„ URL å’Œç‰¹å®šçš„ Header
+            // æ³¨æ„ï¼šMockHttp æœƒæ¯”å°å®Œæ•´çš„ QueryString
             _MockHttp.Expect("http://test.com/api/search?keyword=csharp&page=1")
                      .WithHeaders("X-Custom-Header", "TestValue")
                      .WithHeaders("Authorization", "Bearer secret-token")
@@ -215,7 +215,7 @@ namespace SeanTool.CSharp.Test
             _MockHttp.VerifyNoOutstandingExpectation();
         }
 
-        [Fact(DisplayName = "GetAsync ¹J¨ì 404 ®ÉÀ³©ß¥X HttpRequestException")]
+        [Fact(DisplayName = "GetAsync é‡åˆ° 404 æ™‚æ‡‰æ‹‹å‡º HttpRequestException")]
         public async Task GetAsync_ShouldThrowException_WhenStatusCodeIs404()
         {
             // Arrange
@@ -225,14 +225,14 @@ namespace SeanTool.CSharp.Test
                      .Respond(HttpStatusCode.NotFound);
 
             // Act
-            // ¨Ï¥Î¹êÅé¤èªk
+            // ä½¿ç”¨å¯¦é«”æ–¹æ³•
             Func<Task> act = async () => await _ApiTool.GetAsync<object>(url);
 
             // Assert
             await act.Should().ThrowAsync<HttpRequestException>();
         }
 
-        [Fact(DisplayName = "PostAsync À³¥¿½T§Ç¦C¤Æ Payload ¨Ã¦^¶Çµ²ªG")]
+        [Fact(DisplayName = "PostAsync æ‡‰æ­£ç¢ºåºåˆ—åŒ– Payload ä¸¦å›å‚³çµæœ")]
         public async Task PostAsync_ShouldSerializePayload_AndReturnResponse()
         {
             // Arrange
@@ -240,7 +240,7 @@ namespace SeanTool.CSharp.Test
             var payload = new TestResponse { Id = 99, Name = "New User" };
             var responseObj = new { Success = true, Id = 100 };
 
-            // ³]©w Mock¡GÄdºI POST ½Ğ¨D¡A¨ÃÀË¬d¶Ç°e¥X¥hªº JSON ¤º®e
+            // è¨­å®š Mockï¼šæ””æˆª POST è«‹æ±‚ï¼Œä¸¦æª¢æŸ¥å‚³é€å‡ºå»çš„ JSON å…§å®¹
             _MockHttp.Expect(HttpMethod.Post, url)
                      .WithContent(JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))
                      .Respond("application/json", JsonSerializer.Serialize(responseObj));
@@ -253,7 +253,7 @@ namespace SeanTool.CSharp.Test
             result.GetProperty("Success").GetBoolean().Should().BeTrue();
         }
 
-        [Fact(DisplayName = "GetAsync ¹J¨ì 204 No Content À³¦^¶Ç default")]
+        [Fact(DisplayName = "GetAsync é‡åˆ° 204 No Content æ‡‰å›å‚³ default")]
         public async Task GetAsync_ShouldReturnDefault_WhenResponseIs204()
         {
             // Arrange
@@ -270,8 +270,8 @@ namespace SeanTool.CSharp.Test
         }
 
         // ==========================================
-        // »²§UÃş§O¡G°°³yªº IHttpClientFactory
-        // §@¥Î¡G¤£ºŞ©I¥s CreateClient ¶Ç¤°»ò¦WºÙ¡A¥Ã»·¦^¶Ç§Ú­Ì³]©w¦nªº MockClient
+        // è¼”åŠ©é¡åˆ¥ï¼šå½é€ çš„ IHttpClientFactory
+        // ä½œç”¨ï¼šä¸ç®¡å‘¼å« CreateClient å‚³ä»€éº¼åç¨±ï¼Œæ°¸é å›å‚³æˆ‘å€‘è¨­å®šå¥½çš„ MockClient
         // ==========================================
         private class FakeHttpClientFactory : IHttpClientFactory
         {
@@ -284,7 +284,7 @@ namespace SeanTool.CSharp.Test
 
             public HttpClient CreateClient(string name)
             {
-                // ª½±µ¦^¶Ç¦P¤@­Ó Mock Client
+                // ç›´æ¥å›å‚³åŒä¸€å€‹ Mock Client
                 return _client;
             }
         }

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SeanTool.Tools
+namespace SeanTool.CSharp.SingleFileSetting
 {
     public partial class SingleFile : Form
     {
@@ -21,7 +21,7 @@ namespace SeanTool.Tools
         private void ShowPublishSettingBtn_Click(object sender, EventArgs e)
         {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "PublishSetting.png");
-            new ImageViewerForm(path, "Åã¥Ü¹Ï¤ù").Show();
+            new ImageViewerForm(path, "ç™¼å¸ƒè¨­å®šåœ–ç‰‡").Show();
         }
 
         private void ShowGitSettingBtn_Click(object sender, EventArgs e)
@@ -44,10 +44,10 @@ namespace SeanTool.Tools
             {
                 Multiline = true,
                 ReadOnly = true,
-                ScrollBars = ScrollBars.Both,   // ¥i¤ô¥­/««ª½±²°Ê
-                WordWrap = false,               // ¤£¦Û°Ê´«¦æ¡]¤è«K¬İªø¦æ¡^
+                ScrollBars = ScrollBars.Both,   // å¯æ°´å¹³/å‚ç›´æ²å‹•
+                WordWrap = false,               // åœç”¨è‡ªå‹•æ›è¡Œ (æ–¹ä¾¿æª¢è¦–é•·è¡Œ)
                 Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 10) // µ¥¼e¦rÅé¡A¾\Åªµ{¦¡/Log ¤Íµ½
+                Font = new Font("Consolas", 10) // ç­‰å¯¬å­—å‹ï¼Œé©åˆé–±è®€ç¨‹å¼ç¢¼/Log ç´€éŒ„
             };
 
             tb.Text = content;
@@ -66,13 +66,13 @@ namespace SeanTool.Tools
             var pictureBox = new PictureBox
             {
                 Dock = DockStyle.Fill,
-                SizeMode = PictureBoxSizeMode.Zoom // ÁY©ñ¹Ï¤ù¡A«O«ù¤ñ¨Ò
+                SizeMode = PictureBoxSizeMode.Zoom // ç¸®æ”¾åœ–ç‰‡ä¸¦ä¿æŒæ¯”ä¾‹
             };
 
             if (File.Exists(imagePath))
                 pictureBox.Image = Image.FromFile(imagePath);
             else
-                MessageBox.Show($"§ä¤£¨ì¹Ï¤ù¡G{imagePath}", "¿ù»~", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"æ‰¾ä¸åˆ°åœ–ç‰‡ï¼š{imagePath}", "éŒ¯èª¤", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             Controls.Add(pictureBox);
         }

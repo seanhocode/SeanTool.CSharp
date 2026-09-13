@@ -1,13 +1,18 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
+using SeanTool.CSharp.WPFTool;
 
-namespace SeanTool.CSharp.WPF
+namespace SeanTool.CSharp.WPFTool
 {
     /// <summary>
     /// ModelEditorView.xaml 的互動邏輯
     /// </summary>
     public partial class ModelEditor : UserControl
     {
+        public event EventHandler? Saved;
+        public event EventHandler? Canceled;
+
         public ModelEditor()
         {
             InitializeComponent();
@@ -62,6 +67,31 @@ namespace SeanTool.CSharp.WPF
             set { SetValue(TargetObjectProperty, value); }
         }
 
+        public static readonly DependencyProperty IsEditingProperty =
+            DependencyProperty.Register(
+                nameof(IsEditing),
+                typeof(bool),
+                typeof(ModelEditor),
+                new PropertyMetadata(true, OnIsEditingChanged));
+
+        public bool IsEditing
+        {
+            get { return (bool)GetValue(IsEditingProperty); }
+            set { SetValue(IsEditingProperty, value); }
+        }
+
+        public static readonly DependencyProperty ViewModelProperty =
+            DependencyProperty.Register(
+                nameof(ViewModel),
+                typeof(ModelEditorViewModel),
+                typeof(ModelEditor));
+
+        public ModelEditorViewModel? ViewModel
+        {
+            get { return (ModelEditorViewModel?)GetValue(ViewModelProperty); }
+            private set { SetValue(ViewModelProperty, value); }
+        }
+
         /**
          * 若 (this.DataContext as ModelEditorViewModel).IsEditing = IsEditing;
          * 則只有 CoerceTargetObject 會被觸發
@@ -74,11 +104,48 @@ namespace SeanTool.CSharp.WPF
         private static void OnTargetObjectChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             ModelEditor? view = d as ModelEditor;
-            if (view != null && e.NewValue != null)
+            if (view == null)
             {
-                // 當外部給了新的 Model，我們內部就 new 一個 ViewModel
-                // 並設為這個 UserControl 的 DataContext
-                view.DataContext = new ModelEditorViewModel(e.NewValue);
+                return;
+            }
+
+            object? model = ResolveEditTarget(e.NewValue);
+            if (model == null)
+            {
+                view.ViewModel = null;
+                return;
+            }
+
+            view.ViewModel = new ModelEditorViewModel(
+                model,
+                () => view.Saved?.Invoke(view, EventArgs.Empty),
+                () => view.Canceled?.Invoke(view, EventArgs.Empty))
+            {
+                IsEditing = view.IsEditing
+            };
+        }
+
+        /// <summary>
+        /// 解析實際要編輯的物件
+        /// </summary>
+        /// <remarks>DataTable/DataSet 實作的是 IListSource(而非單一物件)，ModelEditor 一次只編輯一筆資料，
+        /// 故自動轉為其 DefaultView 的第一列(DataRowView)；轉換邏輯共用 <see cref="IEnumerableConverter"/>，
+        /// 與 DynamicDataGrid 一致。一般物件或已是 DataRowView 則直接使用，不做任何轉換。</remarks>
+        private static object? ResolveEditTarget(object? value)
+        {
+            if (value is not IListSource listSource)
+            {
+                return value;
+            }
+
+            return IEnumerableConverter.Convert(listSource)?.Cast<object?>().FirstOrDefault();
+        }
+
+        private static void OnIsEditingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ModelEditor view && view.ViewModel != null)
+            {
+                view.ViewModel.IsEditing = (bool)e.NewValue;
             }
         }
 

@@ -1,4 +1,4 @@
-namespace SeanTool.CSharp.Test
+namespace SeanTool.CSharp.ProcessTool.Test
 {
     public class ProcessToolUnit
     {

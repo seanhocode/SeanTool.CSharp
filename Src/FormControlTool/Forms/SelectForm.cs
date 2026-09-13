@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace SeanTool.CSharp.Forms
+namespace SeanTool.CSharp.FormControlTool
 {
     public partial class SelectForm : Form
     {

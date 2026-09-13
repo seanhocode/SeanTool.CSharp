@@ -1,8 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
-using System.Windows.Controls;
+﻿using System.Windows;
+using SeanTool.CSharp.WPFTool.Test.Models;
 
-namespace SeanTool.CSharp.WPF.Test
+namespace SeanTool.CSharp.WPFTool.Test
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -11,6 +10,11 @@ namespace SeanTool.CSharp.WPF.Test
     {
         // 1. 這是我們要編輯的測試物件
         public Person _Person { get; set; }
+        private DynamicDataGridTestWindow? _dataGridWindow;
+        private DynamicDataGridDataTableTestWindow? _dataGridDataTableWindow;
+        private TreeViewTestWindow? _treeViewWindow;
+        private DropDownListTestWindow? _dropDownListWindow;
+        private DevWindow? _devWindow;
 
 
         public MainWindow()
@@ -34,6 +38,13 @@ namespace SeanTool.CSharp.WPF.Test
             editorWindow.ShowDialog();
         }
 
+        private void GenModelEditorDataTable(object sender, RoutedEventArgs e)
+        {
+            Window editorWindow = new ModelEditorDataTableTestWindow();
+
+            editorWindow.ShowDialog();
+        }
+
         private void CheckModelValue(object sender, RoutedEventArgs e)
         {
             Person person = _Person;
@@ -43,9 +54,110 @@ namespace SeanTool.CSharp.WPF.Test
 
         private void ShowDynamicDataGrid(object sender, RoutedEventArgs e)
         {
-            Window editorWindow = new DynamicDataGridTestWindow();
+            if (_dataGridWindow is null)
+            {
+                _dataGridWindow = new DynamicDataGridTestWindow();
+                _dataGridWindow.Closed += DataGridWindowClosed;
+            }
 
-            editorWindow.ShowDialog();
+            _dataGridWindow.Show();
+            _dataGridWindow.Activate();
+        }
+
+        private void DataGridWindowClosed(object? sender, EventArgs e)
+        {
+            if (sender is DynamicDataGridTestWindow window)
+            {
+                window.Closed -= DataGridWindowClosed;
+            }
+
+            _dataGridWindow = null;
+        }
+
+        private void ShowDynamicDataGridDataTable(object sender, RoutedEventArgs e)
+        {
+            if (_dataGridDataTableWindow is null)
+            {
+                _dataGridDataTableWindow = new DynamicDataGridDataTableTestWindow();
+                _dataGridDataTableWindow.Closed += DataGridDataTableWindowClosed;
+            }
+
+            _dataGridDataTableWindow.Show();
+            _dataGridDataTableWindow.Activate();
+        }
+
+        private void DataGridDataTableWindowClosed(object? sender, EventArgs e)
+        {
+            if (sender is DynamicDataGridDataTableTestWindow window)
+            {
+                window.Closed -= DataGridDataTableWindowClosed;
+            }
+
+            _dataGridDataTableWindow = null;
+        }
+
+        private void ShowTreeView(object sender, RoutedEventArgs e)
+        {
+            if (_treeViewWindow is null)
+            {
+                _treeViewWindow = new TreeViewTestWindow();
+                _treeViewWindow.Closed += TreeViewWindowClosed;
+            }
+
+            _treeViewWindow.Show();
+            _treeViewWindow.Activate();
+        }
+
+        private void TreeViewWindowClosed(object? sender, EventArgs e)
+        {
+            if (sender is TreeViewTestWindow window)
+            {
+                window.Closed -= TreeViewWindowClosed;
+            }
+
+            _treeViewWindow = null;
+        }
+
+        private void ShowDropDownList(object sender, RoutedEventArgs e)
+        {
+            if (_dropDownListWindow is null)
+            {
+                _dropDownListWindow = new DropDownListTestWindow();
+                _dropDownListWindow.Closed += DropDownListWindowClosed;
+            }
+
+            _dropDownListWindow.Show();
+            _dropDownListWindow.Activate();
+        }
+
+        private void DropDownListWindowClosed(object? sender, EventArgs e)
+        {
+            if (sender is DropDownListTestWindow window)
+            {
+                window.Closed -= DropDownListWindowClosed;
+            }
+
+            _dropDownListWindow = null;
+        }
+
+        private void ShowDevWindow(object sender, RoutedEventArgs e)
+        {
+            if(_devWindow is null)
+            {
+                _devWindow = new DevWindow();
+                _devWindow.Closed += DevWindowClosed;
+            }
+            
+            _devWindow.Show();
+            _devWindow.Activate();
+        }
+
+        private void DevWindowClosed(object? sender, EventArgs e)
+        {
+            if (sender is DevWindow window)
+            {
+                window.Closed -= DevWindowClosed;
+            }
         }
     }
 }
