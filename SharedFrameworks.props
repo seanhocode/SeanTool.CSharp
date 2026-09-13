@@ -1,17 +1,26 @@
 <Project>
     <PropertyGroup>
+        <!-- 預設版本 -->
         <BaseTfm>net8.0</BaseTfm>
 
+        <!-- 安全的 SDK 版本，預設為目前使用的 .NET SDK 版本 -->
         <_SafeSdkVersion>$(NETCoreSdkVersion)</_SafeSdkVersion>
+        <!-- 預設值，如果沒有設定安全的 SDK 版本則使用 -->
         <_SafeSdkVersion Condition="'$(_SafeSdkVersion)' == ''">8.0.0</_SafeSdkVersion>
 
+        <!-- 是否支援 .NET 10，預設不啟用 -->
         <IsNet10Supported>false</IsNet10Supported>
+        <!-- 根據安全的 SDK 版本判斷是否支援 .NET 10 -->
         <IsNet10Supported Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(_SafeSdkVersion)', '10.0'))">true</IsNet10Supported>
 
+        <!-- 預設的 Target Framework 列表 -->
         <DefaultTfms>$(BaseTfm)</DefaultTfms>
+        <!-- 根據是否支援 .NET 10 更新預設的 Target Framework 列表 -->
         <DefaultTfms Condition="'$(IsNet10Supported)' == 'true'">$(DefaultTfms);net10.0</DefaultTfms>
 
+        <!-- 預設的 Windows Target Framework 列表 -->
         <WindowsTfms>$(BaseTfm)-windows</WindowsTfms>
+        <!-- 根據是否支援 .NET 10 更新預設的 Windows Target Framework 列表 -->
         <WindowsTfms Condition="'$(IsNet10Supported)' == 'true'">$(WindowsTfms);net10.0-windows</WindowsTfms>
     </PropertyGroup>
 </Project>
