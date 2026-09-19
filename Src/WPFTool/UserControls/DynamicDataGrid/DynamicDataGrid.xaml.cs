@@ -437,5 +437,26 @@ namespace SeanTool.CSharp.WPFTool
              */
             MainDataGrid.Items.Refresh();
         }
+
+        /// <summary>
+        /// 覆寫 MeasureOverride 以檢查外層容器是否給予無限的高度
+        /// </summary>
+        /// <param name="availableSize"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            // 偵測外層容器是否給予無限的高度 (例如放在 StackPanel 或 Height="Auto" 中)
+            if (double.IsPositiveInfinity(availableSize.Height))
+            {
+                throw new InvalidOperationException(
+                    "【DynamicDataGrid 使用錯誤】請勿將此控制項放置於無高度限制的容器中 " +
+                    "(例如 StackPanel、ScrollViewer 或 Grid 的 RowDefinition Height=\"Auto\")。" +
+                    "這會導致 WPF 虛擬化失效並引發嚴重的效能問題 (畫面卡死)。" +
+                    "請改用有高度限制的容器，例如 <RowDefinition Height=\"*\" />。");
+            }
+
+            return base.MeasureOverride(availableSize);
+        }
     }
 }
