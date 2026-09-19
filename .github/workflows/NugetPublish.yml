@@ -17,10 +17,10 @@ jobs:
     # 因加入Form專案，改用 Windows Runner
     runs-on: windows-latest
 
-    # 設定全域預設 shell 為 bash
+    # 設定全域預設 shell 為 pwsh，所有步驟邏輯集中於 Shell/CICD.ps1
     defaults:
       run:
-        shell: bash
+        shell: pwsh
 
     steps:
       # 檢出原始碼
@@ -28,12 +28,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0   # 要完整 diff
+          submodules: true
 
       # 讀取同資料夾下的設定檔
       - name: Load environment variables
-        shell: bash
-        run: |
-          cat .github/workflows/public.env >> $GITHUB_ENV
+        run: ./Shell/CICD.ps1 -Command ImportEnvFile -EnvFile .github/workflows/public.env
 
       # 安裝 .NET SDK，用於 restore/build/publish
       - name: Setup .NET SDK
@@ -49,99 +48,31 @@ jobs:
       # ---------------------------------------------------------
       - name: Get changed files
         id: diff
-        run: |
-          # 取得與 main 分支的差異，或是與前一個 commit 的差異
-          git diff --name-only ${{ github.event.before }} ${{ github.event.after }} > diff.txt || git diff --name-only HEAD~1 HEAD > diff.txt
-          echo "--- Changed files ---"
-          cat diff.txt
+        run: ./Shell/CICD.ps1 -Command GetChangedFiles -Before "${{ github.event.before }}" -After "${{ github.event.after }}"
 
       # ---------------------------------------------------------
       # Step.2 找出哪些 Tool 有變動（csproj / cs / 其他檔都算）
       # ---------------------------------------------------------
       - name: Detect Changed Projects
         id: detect
-        # IFS=';' => string.split(';')，read -ra => 讀取成陣列(-r：代表 Raw。防止反斜線（\）被當作轉義字元處理)
-        run: |
-          IFS=';' read -ra PROJECTS <<< "$INCLUDE_PROJECTS"
-          CHANGED=""
-          
-          for proj in "${PROJECTS[@]}"; do
-            if grep -q "$proj" diff.txt; then
-              echo "Detected project change: $proj"
-              CHANGED="$CHANGED;$proj"
-            fi
-          done
-
-          CHANGED=${CHANGED#;}
-          echo "changed_projects=$CHANGED" >> $GITHUB_OUTPUT
+        run: ./Shell/CICD.ps1 -Command GetChangedProjects -IncludeProjects "$env:INCLUDE_PROJECTS"
 
       - name: Skip if no tool changed
         # steps.detect.outputs.changed_projects => 指向前一個步驟（id: detect）產生的輸出結果
         if: ${{ steps.detect.outputs.changed_projects == '' }}
         run: |
-          echo "🚫 No Tool project changed. Skip."
+          Write-Host "🚫 No Tool project changed. Skip."
           exit 0
 
       # ---------------------------------------------------------
-      # Step.3 Restore
-      # ---------------------------------------------------------
-      - name: Restore Changed Projects
-        run: |
-          IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
-          for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj" | head -n 1)
-            echo "🔄 Restore: $FILE"
-            dotnet restore "$FILE"
-          done
-
-      # ---------------------------------------------------------
-      # Step.4 Build
-      # ---------------------------------------------------------
-      - name: Build Changed Projects
-        run: |
-          IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
-          for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj" | head -n 1)
-            echo "🏗 Build: $FILE"
-            dotnet build "$FILE" -c Release --no-restore
-          done
-
-      # ---------------------------------------------------------
-      # Step.5 Pack
+      # Step.3 Clean, restore, build and pack
       # ---------------------------------------------------------
       - name: Pack Changed Projects
-        run: |
-          mkdir -p ./nupkg
-          IFS=';' read -ra PROJECTS <<< "${{ steps.detect.outputs.changed_projects }}"
-          for proj in "${PROJECTS[@]}"; do
-            FILE=$(find . -name "$proj.csproj" | head -n 1)
-            echo "📦 Pack: $FILE"
-            dotnet pack "$FILE" -c Release -o ./nupkg --no-build
-          done
-
-      # ---------------------------------------------------------
-      # Step.6 Publish to GitHub Packages
-      # ---------------------------------------------------------
-      - name: Add GitHub Packages source
-        run: |
-          dotnet nuget add source \
-            --name github \
-            --username $GITHUB_ACTOR \
-            --password "${{ secrets.GITHUB_TOKEN }}" \
-            --store-password-in-clear-text \
-            "$GITHUB_NUGET_SOURCE"
+        if: ${{ steps.detect.outputs.changed_projects != '' }}
+        run: ./Shell/CICD.ps1 -Command PackProjects -ChangedProjects "${{ steps.detect.outputs.changed_projects }}" -OutputDir ./nupkg
 
 # secrets.GITHUB_TOKEN 是 GitHub Actions 自動提供的授權
 # 可以用來將 NuGet 套件發布到同一個 Repo的 GitHub Packages
 # 但若要跨 Repo 推送或讀取私有套件，則必須使用 PAT
       - name: Publish to GitHub Packages
-        run: |
-          shopt -s nullglob
-          for pkg in ./nupkg/*.nupkg; do
-            echo "🚀 Publishing: $pkg"
-
-            dotnet nuget push "$pkg" \
-              --api-key "${{ secrets.GITHUB_TOKEN }}" \
-              --source github \
-              --skip-duplicate
-          done
+        run: ./Shell/CICD.ps1 -Command PublishPackages -GitHubToken "${{ secrets.GITHUB_TOKEN }}" -NugetSource "$env:GITHUB_NUGET_SOURCE" -OutputDir ./nupkg
