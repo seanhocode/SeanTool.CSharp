@@ -27,4 +27,4 @@
     <PackageReference Include="WPF-UI" />
   </ItemGroup>
 
-</Project>
+</Project> 

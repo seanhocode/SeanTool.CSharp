@@ -10,7 +10,7 @@ namespace SeanTool.CSharp.WPFTool.Test
     public partial class DynamicDataGridTestWindow : Window
     {
         // 資料來源
-        public ObservableCollection<Person> PersonList { get; set; }
+        public IList<Person> PersonList { get; set; }
 
         public List<DynamicDataGridActionDefinition> ActionDefinitions { get; set; }
 
@@ -68,7 +68,7 @@ namespace SeanTool.CSharp.WPFTool.Test
 
         private void CheckDataValue(object sender, RoutedEventArgs e)
         {
-            ObservableCollection<Person> personList = PersonList;
+            IList<Person> personList = PersonList;
             // 此處下中斷點檢查 person 內容
             MessageBox.Show(personList.Count().ToString());
         }

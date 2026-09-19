@@ -29,6 +29,8 @@ jobs:
       # 將 Git 儲存庫的程式碼拉取到執行環境中
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: 'true' # 若有巢狀 Submodule，可以改用 'recursive'
 
       # 讀取同資料夾下的設定檔
       - name: Load environment variables
