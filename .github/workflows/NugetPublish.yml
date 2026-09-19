@@ -5,7 +5,7 @@ name: NuGet Publish
 on:
   push:
     branches:
-      - Dev/Shell
+      - main
   workflow_dispatch:
 
 jobs:
